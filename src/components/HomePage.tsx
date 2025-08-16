@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { gameAnalytics } from '../utils/analytics';
 
 const HomeContainer = styled.div`
   min-height: 100vh;
@@ -169,7 +170,14 @@ const FeatureText = styled.span`
 export const HomePage: React.FC = () => {
   const navigate = useNavigate();
 
+  // 追踪主页访问
+  useEffect(() => {
+    gameAnalytics.gameStart('homepage' as any);
+  }, []);
+
   const handleModeSelect = (mode: 'pinyin' | 'chinese') => {
+    // 追踪模式选择
+    gameAnalytics.modeSwitch('homepage', mode);
     navigate(`/game/${mode}`);
   };
 

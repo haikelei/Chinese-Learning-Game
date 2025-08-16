@@ -6,6 +6,7 @@ import { ChineseInputSystem } from './ChineseInputSystem';
 import { BottomShortcutBar } from './BottomShortcutBar';
 import { AnswerDisplay } from './AnswerDisplay';
 import { samplePhrases } from '../data/samplePhrases';
+import { gameAnalytics, userAnalytics } from '../utils/analytics';
 
 const GameContainer = styled.div`
   min-height: 100vh;
@@ -242,6 +243,9 @@ export const ChineseMode: React.FC = () => {
       gameStarted: true,
     }));
     
+    // 追踪游戏开始
+    gameAnalytics.gameStart('chinese');
+    
     // 延迟一下然后自动播放语音两遍
     setTimeout(() => {
       playAudioTwice(gameState.currentPhrase.audioUrl);
@@ -297,10 +301,15 @@ export const ChineseMode: React.FC = () => {
   }, []);
 
   const togglePinyinHint = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      showPinyinHint: !prev.showPinyinHint
-    }));
+    setGameState(prev => {
+      const newShowHint = !prev.showPinyinHint;
+      // 追踪拼音提示切换
+      gameAnalytics.pinyinHintToggle(newShowHint);
+      return {
+        ...prev,
+        showPinyinHint: newShowHint
+      };
+    });
   }, []);
 
   // 监听键盘事件来开始游戏
