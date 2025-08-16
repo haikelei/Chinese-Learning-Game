@@ -158,10 +158,12 @@ export const errorAnalytics = {
   },
 };
 
-export default {
+const analyticsExports = {
   trackEvent,
   trackPageView,
   gameAnalytics,
   userAnalytics,
   errorAnalytics,
 };
+
+export default analyticsExports;

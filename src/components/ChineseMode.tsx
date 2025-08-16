@@ -6,7 +6,7 @@ import { ChineseInputSystem } from './ChineseInputSystem';
 import { BottomShortcutBar } from './BottomShortcutBar';
 import { AnswerDisplay } from './AnswerDisplay';
 import { samplePhrases } from '../data/samplePhrases';
-import { gameAnalytics, userAnalytics } from '../utils/analytics';
+import { gameAnalytics } from '../utils/analytics';
 
 const GameContainer = styled.div`
   min-height: 100vh;
