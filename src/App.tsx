@@ -5,6 +5,7 @@ import { system } from './theme';
 import { HomePage } from './components/HomePage';
 import { PinyinMode } from './components/PinyinMode';
 import { ChineseMode } from './components/ChineseMode';
+import { FloatingDiscussion } from './components/FloatingDiscussion';
 import './App.css';
 
 function App() {
@@ -18,6 +19,9 @@ function App() {
               <Route path="/game/pinyin" element={<PinyinMode />} />
               <Route path="/game/chinese" element={<ChineseMode />} />
             </Routes>
+            
+            {/* 全局悬浮讨论板 */}
+            <FloatingDiscussion />
           </div>
         </Router>
       </Theme>
