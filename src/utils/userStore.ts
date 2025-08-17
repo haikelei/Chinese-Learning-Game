@@ -59,20 +59,20 @@ export const useUserStore = create<UserStore>()(
   )
 );
 
-// 用户名验证
+// Username validation
 export const validateUsername = (username: string): { valid: boolean; message?: string } => {
   const trimmed = username.trim();
   
   if (!trimmed) {
-    return { valid: false, message: '用户名不能为空' };
+    return { valid: false, message: 'Username cannot be empty' };
   }
   
   if (trimmed.length > 20) {
-    return { valid: false, message: '用户名不能超过20个字符' };
+    return { valid: false, message: 'Username cannot exceed 20 characters' };
   }
   
   if (!/^[\u4e00-\u9fa5a-zA-Z0-9_\-\s]+$/.test(trimmed)) {
-    return { valid: false, message: '用户名只能包含中文、英文、数字、下划线和短横线' };
+    return { valid: false, message: 'Username can only contain Chinese characters, letters, numbers, underscores and hyphens' };
   }
   
   return { valid: true };

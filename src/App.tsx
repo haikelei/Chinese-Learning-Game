@@ -20,7 +20,7 @@ function App() {
               <Route path="/game/chinese" element={<ChineseMode />} />
             </Routes>
             
-            {/* 全局悬浮讨论板 */}
+            {/* Global floating discussion board */}
             <FloatingDiscussion />
           </div>
         </Router>

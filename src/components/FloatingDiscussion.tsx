@@ -6,10 +6,10 @@ import { discussionAPI, Message } from '../utils/discussionAPI';
 import { getDeviceFingerprint } from '../utils/anonymousUser';
 import { useUserStore, validateUsername } from '../utils/userStore';
 
-// 悬浮按钮样式
+// Floating button styles
 const FloatingButton = styled(motion.button)`
   position: fixed;
-  bottom: 30px;
+  bottom: 130px;
   right: 30px;
   width: 60px;
   height: 60px;
@@ -36,7 +36,7 @@ const FloatingButton = styled(motion.button)`
   }
 `;
 
-// 新消息红点
+// New message notification dot
 const NotificationDot = styled(motion.div)`
   position: absolute;
   top: -2px;
@@ -48,11 +48,11 @@ const NotificationDot = styled(motion.div)`
   border: 2px solid white;
 `;
 
-// 讨论面板容器
+// Discussion panel container
 const DiscussionPanel = styled(motion.div)`
   position: fixed;
   bottom: 100px;
-  right: 30px;
+  right: 100px;
   width: 350px;
   height: 450px;
   background: #27272a;
@@ -72,7 +72,7 @@ const DiscussionPanel = styled(motion.div)`
   }
 `;
 
-// 面板头部
+// Panel header
 const PanelHeader = styled.div`
   padding: 16px 20px;
   background: #3f3f46;
@@ -109,7 +109,7 @@ const HeaderButton = styled.button`
   }
 `;
 
-// 消息列表容器
+// Message list container
 const MessagesContainer = styled.div`
   flex: 1;
   overflow-y: auto;
@@ -133,7 +133,7 @@ const MessagesContainer = styled.div`
   }
 `;
 
-// 单条消息样式
+// Individual message styles
 const MessageItem = styled(motion.div)<{ isReply?: boolean }>`
   margin-bottom: 12px;
   padding: 12px;
@@ -143,7 +143,7 @@ const MessageItem = styled(motion.div)<{ isReply?: boolean }>`
   position: relative;
 `;
 
-// 回复消息的引用内容
+// Reply message reference content
 const ReplyReference = styled.div`
   background: #52525b;
   border-radius: 6px;
@@ -216,19 +216,21 @@ const MessageContent = styled.p`
   word-wrap: break-word;
 `;
 
-// 消息操作按钮
+// Message action buttons
 const MessageActionButton = styled.button`
   background: none;
   border: none;
   color: #71717a;
   cursor: pointer;
-  padding: 4px;
+  padding: 4px 8px;
   border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   opacity: 0.7;
   transition: all 0.2s ease;
+  font-size: 0.75rem;
   
   &:hover {
     color: #0ea5e9;
@@ -241,7 +243,7 @@ const MessageActionButton = styled.button`
   }
 `;
 
-// 回复输入区域提示
+// Reply input area indicator
 const ReplyingToIndicator = styled(motion.div)`
   padding: 8px 16px;
   background: #52525b;
@@ -276,13 +278,13 @@ const CancelReplyButton = styled.button`
   }
 `;
 
-// 输入区域
+// Input area
 const InputContainer = styled.div`
   background: #3f3f46;
   border-top: 1px solid #52525b;
 `;
 
-// 用户名区域
+// Username area
 const UsernameSection = styled.div`
   padding: 12px 16px 0;
   display: flex;
@@ -296,6 +298,12 @@ const UsernameDisplay = styled.div`
   align-items: center;
   gap: 8px;
   flex: 1;
+`;
+
+const UsernameWithEdit = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 6px;
 `;
 
 const UsernameText = styled.span`
@@ -358,7 +366,7 @@ const ErrorMessage = styled.div`
   margin-left: 16px;
 `;
 
-// 输入框包装器
+// Input wrapper
 const MessageInputSection = styled.div`
   padding: 12px 16px 16px;
 `;
@@ -414,7 +422,7 @@ const SendButton = styled.button`
   }
 `;
 
-// 空状态
+// Empty state
 const EmptyState = styled.div`
   display: flex;
   flex-direction: column;
@@ -437,7 +445,7 @@ const EmptyText = styled.p`
   font-size: 0.9rem;
 `;
 
-// 加载状态
+// Loading state
 const LoadingSpinner = styled(motion.div)`
   display: inline-block;
   width: 16px;
@@ -456,7 +464,7 @@ export const FloatingDiscussion: React.FC = () => {
   const [hasNewMessages, setHasNewMessages] = useState(false);
   const [lastMessageCount, setLastMessageCount] = useState(0);
   
-  // 用户名管理
+  // Username management
   const { 
     isEditing, 
     setUsername, 
@@ -469,7 +477,7 @@ export const FloatingDiscussion: React.FC = () => {
   const [tempUsername, setTempUsername] = useState('');
   const [usernameError, setUsernameError] = useState('');
   
-  // 回复状态管理
+  // Reply state management
   const [isReplying, setIsReplying] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{
     id: string;
@@ -477,7 +485,7 @@ export const FloatingDiscussion: React.FC = () => {
     content: string;
   } | null>(null);
   
-  // 存储所有原始消息的内容，用于显示回复引用
+  // Store all original message content for reply references
   const [originalMessages, setOriginalMessages] = useState<Map<string, {
     username: string;
     content: string;
@@ -487,23 +495,27 @@ export const FloatingDiscussion: React.FC = () => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const usernameInputRef = useRef<HTMLInputElement>(null);
 
-  // 滚动到底部
+  // Scroll to bottom
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  // 加载消息
+  // Load messages
   const loadMessages = async () => {
     try {
       setIsLoading(true);
       const response = await discussionAPI.getMessages(1, 50);
       if (response.success) {
         console.log('Loaded messages:', response.data.messages);
-        setMessages(response.data.messages);
+        // Sort by creation time, newest at bottom
+        const sortedMessages = response.data.messages.sort((a, b) => 
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+        );
+        setMessages(sortedMessages);
         
-        // 构建原始消息映射
+        // Build original message mapping
         const messageMap = new Map();
-        response.data.messages.forEach(msg => {
+        sortedMessages.forEach(msg => {
           messageMap.set(msg.id, {
             username: msg.username,
             content: msg.content
@@ -511,11 +523,11 @@ export const FloatingDiscussion: React.FC = () => {
         });
         setOriginalMessages(messageMap);
         
-        // 检查是否有新消息
-        if (response.data.messages.length > lastMessageCount && lastMessageCount > 0) {
+        // Check for new messages
+        if (sortedMessages.length > lastMessageCount && lastMessageCount > 0) {
           setHasNewMessages(true);
         }
-        setLastMessageCount(response.data.messages.length);
+        setLastMessageCount(sortedMessages.length);
       }
     } catch (error) {
       console.error('Failed to load messages:', error);
@@ -524,11 +536,11 @@ export const FloatingDiscussion: React.FC = () => {
     }
   };
 
-  // 开始回复某条消息
+  // Start replying to a message
   const handleStartReply = async (message: Message) => {
     console.log('Starting reply to message:', message);
     try {
-      // 如果是回复消息，需要获取原始消息信息
+      // If it's a reply message, need to get original message info
       const targetId = message.replyToId || message.id;
       console.log('Target message ID:', targetId);
       
@@ -543,14 +555,14 @@ export const FloatingDiscussion: React.FC = () => {
         });
         setIsReplying(true);
         
-        // 聚焦到输入框
+        // Focus on input
         setTimeout(() => {
           inputRef.current?.focus();
         }, 100);
       }
     } catch (error) {
       console.error('Failed to get reply info:', error);
-      // 回退到使用当前消息信息
+      // Fallback to using current message info
       setReplyingTo({
         id: message.id,
         username: message.username,
@@ -563,13 +575,13 @@ export const FloatingDiscussion: React.FC = () => {
     }
   };
 
-  // 取消回复
+  // Cancel reply
   const handleCancelReply = () => {
     setIsReplying(false);
     setReplyingTo(null);
   };
 
-  // 用户名编辑处理函数
+  // Username editing handlers
   const handleStartEditUsername = () => {
     setTempUsername(getDisplayUsername());
     setUsernameError('');
@@ -612,7 +624,17 @@ export const FloatingDiscussion: React.FC = () => {
     }
   };
 
-  // 发送消息
+  // Handle username input blur
+  const handleUsernameBlur = () => {
+    // Auto-save on blur (if there's content)
+    if (tempUsername.trim()) {
+      handleSaveUsername();
+    } else {
+      handleCancelEditUsername();
+    }
+  };
+
+  // Send message
   const sendMessage = async () => {
     if (!newMessage.trim() || isSending) return;
     
@@ -636,7 +658,7 @@ export const FloatingDiscussion: React.FC = () => {
         setNewMessage('');
         setIsReplying(false);
         setReplyingTo(null);
-        await loadMessages(); // 重新加载消息
+        await loadMessages(); // Reload messages
         setTimeout(scrollToBottom, 100);
       }
     } catch (error) {
@@ -646,20 +668,20 @@ export const FloatingDiscussion: React.FC = () => {
     }
   };
 
-  // 格式化时间
+  // Format time in English
   const formatTime = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
     
-    if (diff < 60000) { // 1分钟内
-      return '刚刚';
-    } else if (diff < 3600000) { // 1小时内
-      return `${Math.floor(diff / 60000)}分钟前`;
-    } else if (diff < 86400000) { // 1天内
-      return `${Math.floor(diff / 3600000)}小时前`;
+    if (diff < 60000) { // Within 1 minute
+      return 'Just now';
+    } else if (diff < 3600000) { // Within 1 hour
+      return `${Math.floor(diff / 60000)}m ago`;
+    } else if (diff < 86400000) { // Within 1 day
+      return `${Math.floor(diff / 3600000)}h ago`;
     } else {
-      return date.toLocaleDateString('zh-CN', {
+      return date.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
@@ -668,7 +690,7 @@ export const FloatingDiscussion: React.FC = () => {
     }
   };
 
-  // 处理回车发送
+  // Handle Enter key for sending
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -676,16 +698,20 @@ export const FloatingDiscussion: React.FC = () => {
     }
   };
 
-  // 打开面板时的处理
-  const handleOpenPanel = () => {
-    setIsOpen(true);
-    setHasNewMessages(false);
-    if (messages.length === 0) {
-      loadMessages();
+  // Handle panel opening
+  const handleTogglePanel = () => {
+    if (isOpen) {
+      setIsOpen(false);
+    } else {
+      setIsOpen(true);
+      setHasNewMessages(false);
+      if (messages.length === 0) {
+        loadMessages();
+      }
     }
   };
 
-  // 自动调整输入框高度
+  // Auto-adjust textarea height
   const adjustTextareaHeight = () => {
     if (inputRef.current) {
       inputRef.current.style.height = 'auto';
@@ -693,17 +719,17 @@ export const FloatingDiscussion: React.FC = () => {
     }
   };
 
-  // 初始加载
+  // Initial load
   useEffect(() => {
     loadMessages();
     
-    // 定期检查新消息（5分钟间隔）
+    // Periodically check for new messages (5-minute interval)
     const interval = setInterval(loadMessages, 5 * 60 * 1000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 滚动到底部
+  // Scroll to bottom
   useEffect(() => {
     if (isOpen) {
       setTimeout(scrollToBottom, 100);
@@ -712,9 +738,9 @@ export const FloatingDiscussion: React.FC = () => {
 
   return (
     <>
-      {/* 悬浮按钮 */}
+      {/* Floating button */}
       <FloatingButton
-        onClick={handleOpenPanel}
+        onClick={handleTogglePanel}
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
         initial={{ opacity: 0, scale: 0 }}
@@ -733,7 +759,7 @@ export const FloatingDiscussion: React.FC = () => {
         </AnimatePresence>
       </FloatingButton>
 
-      {/* 讨论面板 */}
+      {/* Discussion panel */}
       <AnimatePresence>
         {isOpen && (
           <DiscussionPanel
@@ -742,11 +768,11 @@ export const FloatingDiscussion: React.FC = () => {
             exit={{ opacity: 0, scale: 0.8, y: 20 }}
             transition={{ type: "spring", duration: 0.3 }}
           >
-            {/* 头部 */}
+            {/* Header */}
             <PanelHeader>
               <PanelTitle>
                 <MessageCircle size={16} />
-                讨论区
+Discussion
               </PanelTitle>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <HeaderButton onClick={loadMessages} disabled={isLoading}>
@@ -758,7 +784,7 @@ export const FloatingDiscussion: React.FC = () => {
               </div>
             </PanelHeader>
 
-            {/* 消息列表 */}
+            {/* Message list */}
             <MessagesContainer>
               {isLoading && messages.length === 0 ? (
                 <EmptyState>
@@ -771,7 +797,7 @@ export const FloatingDiscussion: React.FC = () => {
                 <EmptyState>
                   <EmptyIcon>💬</EmptyIcon>
                   <EmptyText>
-                    还没有人发言，成为第一个发言的人吧！
+                    No messages yet. Be the first to start the conversation!
                   </EmptyText>
                 </EmptyState>
               ) : (
@@ -784,15 +810,15 @@ export const FloatingDiscussion: React.FC = () => {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
                     >
-                      {/* 如果是回复消息，显示被回复的内容 */}
+                      {/* If it's a reply message, show the replied content */}
                       {message.replyToId && message.replyToUsername && (
                         <ReplyReference>
                           <ReplyToText>
                             <CornerUpLeft size={12} />
-                            <ReplyToUsername>回复 @{message.replyToUsername}</ReplyToUsername>
+                            <ReplyToUsername>Replying to @{message.replyToUsername}</ReplyToUsername>
                           </ReplyToText>
                           <ReplyToContent>
-                            {/* 显示被回复的原始内容 */}
+                            {/* Show original replied content */}
                             {(() => {
                               const originalMsg = originalMessages.get(message.replyToId);
                               console.log('Original message for', message.replyToId, ':', originalMsg);
@@ -800,7 +826,7 @@ export const FloatingDiscussion: React.FC = () => {
                                 const content = originalMsg.content;
                                 return content.length > 100 ? content.substring(0, 100) + '...' : content;
                               }
-                              return '原消息内容未找到';
+                              return 'Original message not found';
                             })()}
                           </ReplyToContent>
                         </ReplyReference>
@@ -814,9 +840,10 @@ export const FloatingDiscussion: React.FC = () => {
                           <MessageTime>{formatTime(message.createdAt)}</MessageTime>
                           <MessageActionButton
                             onClick={() => handleStartReply(message)}
-                            title="回复"
+                            title="Reply to this message"
                           >
-                            <Reply size={14} />
+                            <Reply size={12} />
+                            <span>Reply</span>
                           </MessageActionButton>
                         </MessageHeaderRight>
                       </MessageHeader>
@@ -829,9 +856,9 @@ export const FloatingDiscussion: React.FC = () => {
               )}
             </MessagesContainer>
 
-            {/* 输入区域 */}
+            {/* Input area */}
             <InputContainer>
-              {/* 回复提示区域 */}
+              {/* Reply indicator area */}
               <AnimatePresence>
                 {isReplying && replyingTo && (
                   <ReplyingToIndicator
@@ -842,16 +869,16 @@ export const FloatingDiscussion: React.FC = () => {
                   >
                     <ReplyingToText>
                       <Reply size={16} />
-                      <span>回复 @{replyingTo.username}: {replyingTo.content.length > 50 ? replyingTo.content.substring(0, 50) + '...' : replyingTo.content}</span>
+                      <span>Replying to @{replyingTo.username}: {replyingTo.content.length > 50 ? replyingTo.content.substring(0, 50) + '...' : replyingTo.content}</span>
                     </ReplyingToText>
-                    <CancelReplyButton onClick={handleCancelReply} title="取消回复">
+                    <CancelReplyButton onClick={handleCancelReply} title="Cancel reply">
                       <X size={16} />
                     </CancelReplyButton>
                   </ReplyingToIndicator>
                 )}
               </AnimatePresence>
               
-              {/* 用户名区域 */}
+              {/* Username area */}
               <UsernameSection>
                 <UsernameDisplay>
                   {isEditing ? (
@@ -863,54 +890,54 @@ export const FloatingDiscussion: React.FC = () => {
                         setUsernameError('');
                       }}
                       onKeyDown={handleUsernameKeyPress}
-                      placeholder="输入用户名..."
+                      onBlur={handleUsernameBlur}
+                      placeholder="Enter username..."
                       maxLength={20}
                     />
                   ) : (
-                    <UsernameText>{getDisplayUsername()}</UsernameText>
+                    <UsernameWithEdit>
+                      <UsernameText>{getDisplayUsername()}</UsernameText>
+                      <UsernameButton
+                        onClick={handleStartEditUsername}
+                        title="Edit username"
+                      >
+                        <Edit2 size={14} />
+                      </UsernameButton>
+                    </UsernameWithEdit>
                   )}
                 </UsernameDisplay>
                 
-                <UsernameActions>
-                  {isEditing ? (
-                    <>
-                      <UsernameButton
-                        onClick={handleSaveUsername}
-                        disabled={!tempUsername.trim()}
-                        title="保存"
-                      >
-                        <Check size={14} />
-                      </UsernameButton>
-                      <UsernameButton
-                        onClick={handleResetUsername}
-                        title="重置为默认"
-                      >
-                        <RotateCcw size={14} />
-                      </UsernameButton>
-                      <UsernameButton
-                        onClick={handleCancelEditUsername}
-                        title="取消"
-                      >
-                        <X size={14} />
-                      </UsernameButton>
-                    </>
-                  ) : (
+                {isEditing && (
+                  <UsernameActions>
                     <UsernameButton
-                      onClick={handleStartEditUsername}
-                      title="编辑用户名"
+                      onClick={handleSaveUsername}
+                      disabled={!tempUsername.trim()}
+                      title="Save"
                     >
-                      <Edit2 size={14} />
+                      <Check size={14} />
                     </UsernameButton>
-                  )}
-                </UsernameActions>
+                    <UsernameButton
+                      onClick={handleResetUsername}
+                      title="Reset to default"
+                    >
+                      <RotateCcw size={14} />
+                    </UsernameButton>
+                    <UsernameButton
+                      onClick={handleCancelEditUsername}
+                      title="Cancel"
+                    >
+                      <X size={14} />
+                    </UsernameButton>
+                  </UsernameActions>
+                )}
               </UsernameSection>
               
-              {/* 错误提示 */}
+              {/* Error message */}
               {usernameError && (
                 <ErrorMessage>{usernameError}</ErrorMessage>
               )}
               
-              {/* 消息输入区域 */}
+              {/* Message input area */}
               <MessageInputSection>
                 <InputWrapper>
                   <MessageInput
@@ -921,7 +948,7 @@ export const FloatingDiscussion: React.FC = () => {
                       adjustTextareaHeight();
                     }}
                     onKeyPress={handleKeyPress}
-                    placeholder="输入你的想法..."
+                    placeholder="Share your thoughts..."
                     maxLength={500}
                     rows={1}
                   />
