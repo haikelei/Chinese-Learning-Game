@@ -27,8 +27,8 @@ const GameContainer = styled.div<{ hasSidebar: boolean }>`
 
 const BackButton = styled(motion.button)`
   position: absolute;
-  top: 30px;
-  left: 260px; /* 与侧边栏右边缘对齐 (240px + 20px) */
+  top: 20px; /* 在侧边栏顶部上方 */
+  left: 20px; /* 与侧边栏左边缘对齐 */
   background: linear-gradient(135deg, #3f3f46 0%, #52525b 100%);
   border: 1px solid #52525b;
   border-radius: 12px;

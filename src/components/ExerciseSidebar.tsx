@@ -9,10 +9,10 @@ const SidebarContainer = styled.div`
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   padding: 16px;
   overflow-y: auto;
-  height: 100vh;
+  height: calc(100vh - 160px); /* 减去顶部80px和底部80px的空间 */
   position: absolute;
   left: 0;
-  top: 0;
+  top: 80px; /* Back按钮下方，留出足够空间 */
   z-index: 50;
   box-shadow: 2px 0 20px rgba(0, 0, 0, 0.3);
 `;
