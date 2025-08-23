@@ -15,6 +15,7 @@ const SidebarContainer = styled.div`
   top: 80px; /* Back按钮下方，留出足够空间 */
   z-index: 50;
   box-shadow: 2px 0 20px rgba(0, 0, 0, 0.3);
+  display: none; /* 暂时隐藏侧边栏 */
 `;
 
 const SidebarHeader = styled.div`
