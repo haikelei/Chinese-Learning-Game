@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   Box, 
-  Heading, 
   Text, 
   VStack, 
   HStack, 
@@ -10,7 +9,7 @@ import {
   Center, 
   Badge
 } from '@chakra-ui/react';
-import { BookOpen, TrendingUp } from 'lucide-react';
+import { BookOpen } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserRecentCourses, UserRecentCourse } from '../utils/courseAPI';
@@ -32,12 +31,7 @@ export const MyCourses: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [coursePackages, setCoursePackages] = useState<UserCoursePackage[]>([]);
-  const [overallStats, setOverallStats] = useState({
-    totalPackages: 0,
-    totalCourses: 0,
-    averageProgress: 0,
-    totalStudyTime: 0
-  });
+
 
   // 获取用户最近学习的课程
   const fetchUserCourses = useCallback(async () => {
@@ -111,18 +105,7 @@ export const MyCourses: React.FC = () => {
       
       setCoursePackages(packages);
       
-      // 计算整体统计
-      const totalCourses = response.courses.length;
-      const averageProgress = totalCourses > 0 
-        ? Math.round(response.courses.reduce((sum, course) => sum + course.completionPercentage, 0) / totalCourses)
-        : 0;
-      
-      setOverallStats({
-        totalPackages: packages.length,
-        totalCourses,
-        averageProgress,
-        totalStudyTime: 0 // 暂时设为0，后续可以从API获取
-      });
+
       
     } catch (err) {
       console.error('Failed to fetch user courses:', err);
@@ -183,50 +166,7 @@ export const MyCourses: React.FC = () => {
       return (
       <Box p="8">
 
-      {/* 学习统计 */}
-      {coursePackages.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-        >
-          <Box 
-            bg="rgba(39, 39, 42, 0.6)" 
-            borderRadius="16px" 
-            p="6" 
-            mb="8"
-            border="1px solid rgba(82, 82, 91, 0.3)"
-          >
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} gap="6">
-              <VStack align="center" gap="2">
-                <Text color="gray.400" fontSize="sm">课程包</Text>
-                <Text color="white" fontSize="2xl" fontWeight="bold">{overallStats.totalPackages}</Text>
-                <Text color="gray.500" fontSize="xs">正在学习</Text>
-              </VStack>
-              
-              <VStack align="center" gap="2">
-                <Text color="gray.400" fontSize="sm">总课程</Text>
-                <Text color="white" fontSize="2xl" fontWeight="bold">{overallStats.totalCourses}</Text>
-                <Text color="gray.500" fontSize="xs">包含练习</Text>
-              </VStack>
-              
-              <VStack align="center" gap="2">
-                <Text color="gray.400" fontSize="sm">平均进度</Text>
-                <Text color="blue.400" fontSize="2xl" fontWeight="bold">{overallStats.averageProgress}%</Text>
-                <Text color="gray.500" fontSize="xs">学习完成度</Text>
-              </VStack>
-              
-              <VStack align="center" gap="2">
-                <Text color="gray.400" fontSize="sm">学习状态</Text>
-                <Text color="green.400" fontSize="2xl">
-                  <TrendingUp size={20} />
-                </Text>
-                <Text color="gray.500" fontSize="xs">持续学习中</Text>
-              </VStack>
-            </SimpleGrid>
-          </Box>
-        </motion.div>
-      )}
+
 
       {/* 课程包列表 */}
       {coursePackages.length > 0 ? (
@@ -285,9 +225,9 @@ export const MyCourses: React.FC = () => {
               </Box>
               
               <VStack gap="3">
-                <Heading size="md" color="gray.400">
+                <Text color="gray.400" fontSize="lg" fontWeight="500">
                   还没有开始学习
-                </Heading>
+                </Text>
                 <Text color="gray.500" fontSize="sm">
                   去课程商店选择你感兴趣的课程包开始学习吧！
                 </Text>
