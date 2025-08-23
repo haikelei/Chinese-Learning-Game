@@ -273,6 +273,10 @@ export const PinyinMode: React.FC = () => {
     setLoading(true);
     setError(null);
     
+    // 清空之前的数据，避免重复
+    setExerciseList([]);
+    setAllSegments([]);
+    
     const fetchData = async () => {
       try {
         let processedSegments: ExtendedExerciseSegment[] = [];
@@ -283,6 +287,9 @@ export const PinyinMode: React.FC = () => {
            const response = await getAllSegmentsFromCourse(courseId);
            
            console.log('📋 API响应数据结构:', response);
+           
+           // 先收集所有的exercises和segments，然后一次性设置
+           const exercisesWithProgress: any[] = [];
            
            for (const exercise of response.exercises) {
              console.log('🔍 处理exercise:', exercise);
@@ -320,18 +327,21 @@ export const PinyinMode: React.FC = () => {
                };
              });
              
-                        processedSegments.push(...gameSegments);
-           console.log(`📚 Exercise ${exercise.id}: 添加了 ${gameSegments.length} 个segments`);
+             processedSegments.push(...gameSegments);
+             console.log(`📚 Exercise ${exercise.id}: 添加了 ${gameSegments.length} 个segments`);
+             
+             // 计算exercise进度并添加到临时数组
+             const exerciseProgress = calculateExerciseProgress(exercise);
+             const exerciseWithProgress = {
+               ...exercise,
+               ...exerciseProgress,
+               isCurrent: false // 稍后设置当前exercise
+             };
+             exercisesWithProgress.push(exerciseWithProgress);
+           }
            
-           // 计算exercise进度并添加到exerciseList
-           const exerciseProgress = calculateExerciseProgress(exercise);
-           const exerciseWithProgress = {
-             ...exercise,
-             ...exerciseProgress,
-             isCurrent: false // 稍后设置当前exercise
-           };
-           setExerciseList(prev => [...prev, exerciseWithProgress]);
-         }
+           // 一次性设置所有exercises，避免重复添加
+           setExerciseList(exercisesWithProgress);
         } else if (exercisesParam) {
           // 兼容旧的接口（临时方案）
           console.log('🔍 使用兼容接口获取数据，exercises:', exercisesParam);
