@@ -1,6 +1,27 @@
 // Course Package API functions
 import { api } from './apiConfig';
 
+// 用户最近学习的课程接口
+export interface UserRecentCourse {
+  id: string;
+  title: string;
+  description?: string;
+  orderIndex: number;
+  coursePackageId: string;
+  coursePackageTitle: string;
+  lastAccessedAt: string;
+  completionPercentage: number;
+  completedExercises: number;
+  totalExercises: number;
+  isCompleted: boolean;
+}
+
+// 用户最近学习课程响应
+export interface UserRecentCoursesResponse {
+  courses: UserRecentCourse[];
+  totalCount: number;
+}
+
 // 课程包接口
 export interface CoursePackage {
   id: string;
@@ -295,4 +316,15 @@ export const convertExerciseToPhrase = (exercise: Exercise): any => {
     audioUrl: '',
     difficulty: exercise.difficultyLevel > 3 ? 'hard' : exercise.difficultyLevel > 1 ? 'medium' : 'easy',
   }];
+};
+
+// 获取用户最近学习的课程
+export const fetchUserRecentCourses = async (limit: number = 10): Promise<UserRecentCoursesResponse> => {
+  try {
+    const response = await api.get(`/courses/user/recent?limit=${limit}`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to fetch user recent courses:', error);
+    throw error;
+  }
 };
