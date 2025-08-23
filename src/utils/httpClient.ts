@@ -79,10 +79,17 @@ export class HttpClient {
         
         const { data } = response;
         
+        console.log('🔍 原始响应数据:', data);
+        console.log('🔍 响应数据类型:', typeof data);
+        
         // 检查响应格式是否符合预期
         if (data && typeof data === 'object' && 'code' in data) {
+          console.log('🔍 响应包含code字段:', data.code);
           // 如果code为0，表示成功
           if (data.code === 0) {
+            console.log('🔍 业务成功，返回data字段:', data.data);
+            console.log('🔍 data.data类型:', typeof data.data);
+            console.log('🔍 data.data是否为undefined:', data.data === undefined);
             // 直接返回data字段，让上层业务代码使用
             return data.data;
           } else {
