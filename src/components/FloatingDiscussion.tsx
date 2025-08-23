@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { MessageCircle, Send, X, RefreshCw, Edit2, Check, RotateCcw, Reply, CornerUpLeft } from 'lucide-react';
 import { discussionAPI, Message } from '../utils/discussionAPI';
 import { getDeviceFingerprint } from '../utils/anonymousUser';
-import { useUserStore, validateUsername } from '../utils/userStore';
+import { useDiscussBoardUserStore, validateDiscussBoardUsername } from '../utils/discussBoardUserStore';
 
 // Floating button styles
 const FloatingButton = styled(motion.button)`
@@ -472,7 +472,7 @@ export const FloatingDiscussion: React.FC = () => {
     stopEditing, 
     resetToDefault, 
     getDisplayUsername 
-  } = useUserStore();
+  } = useDiscussBoardUserStore();
   
   const [tempUsername, setTempUsername] = useState('');
   const [usernameError, setUsernameError] = useState('');
@@ -593,7 +593,7 @@ export const FloatingDiscussion: React.FC = () => {
   };
 
   const handleSaveUsername = () => {
-    const validation = validateUsername(tempUsername);
+    const validation = validateDiscussBoardUsername(tempUsername);
     if (!validation.valid) {
       setUsernameError(validation.message || '');
       return;

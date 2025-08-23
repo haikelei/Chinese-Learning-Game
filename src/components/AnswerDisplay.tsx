@@ -111,14 +111,45 @@ const EnglishText = styled.span`
 interface AnswerDisplayProps {
   isVisible: boolean;
   phrase: {
-    pinyin: string;
-    chinese: string;
-    translation: string;
-  };
+    content: string;
+    pinyin?: string | string[];
+    pinyinWithoutTones?: string[]; // 添加不带声调的拼音字段
+    translation?: string;
+    id?: string;
+    difficultyLevel?: number;
+  } | null;
 }
 
 // 工具函数：解析拼音和汉字配对
-const parsePinyinChinesePairs = (pinyin: string, chinese: string) => {
+const parsePinyinChinesePairs = (pinyin: string | string[], chinese: string) => {
+  // 处理拼音数组格式
+  if (Array.isArray(pinyin)) {
+    const pinyinSyllables = pinyin.filter(syllable => syllable && syllable.length > 0);
+    const chineseChars = chinese.split('').filter(char => char.trim() && !/[，。！？、；：""''（）]/.test(char));
+    
+    // 确保数组长度一致
+    const maxLength = Math.max(pinyinSyllables.length, chineseChars.length);
+    
+    const pinyinArray: string[] = [];
+    const chineseArray: string[] = [];
+    
+    for (let i = 0; i < maxLength; i++) {
+      pinyinArray.push(pinyinSyllables[i] || '');
+      chineseArray.push(chineseChars[i] || '');
+    }
+    
+    return { pinyinArray, chineseArray };
+  }
+  
+  // 处理字符串格式的拼音
+  if (!pinyin.trim()) {
+    const chineseChars = chinese.split('').filter(char => char.trim() && !/[，。！？、；：""''（）]/.test(char));
+    return {
+      pinyinArray: new Array(chineseChars.length).fill(''),
+      chineseArray: chineseChars
+    };
+  }
+  
   // 分割拼音音节（按空格）
   const pinyinSyllables = pinyin.trim().split(/\s+/).filter(syllable => syllable.length > 0);
   
@@ -143,7 +174,9 @@ export const AnswerDisplay: React.FC<AnswerDisplayProps> = ({
   isVisible,
   phrase,
 }) => {
-  const { pinyinArray, chineseArray } = parsePinyinChinesePairs(phrase.pinyin, phrase.chinese);
+  if (!phrase) return null;
+  
+  const { pinyinArray, chineseArray } = parsePinyinChinesePairs(phrase.pinyin || '', phrase.content);
 
   return (
     <AnimatePresence>

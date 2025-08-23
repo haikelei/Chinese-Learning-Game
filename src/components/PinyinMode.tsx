@@ -1,12 +1,14 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { InputSystem } from './InputSystem';
-import { ShareCard } from './ShareCard';
-import { BottomShortcutBar } from './BottomShortcutBar';
 import { AnswerDisplay } from './AnswerDisplay';
-import { samplePhrases } from '../data/samplePhrases';
+import { BottomShortcutBar } from './BottomShortcutBar';
+import { ShareCard } from './ShareCard';
+import { getAllSegmentsFromCourse, fetchExerciseSegments } from '../utils/courseAPI';
+import { removeTrailingPunctuation } from '../utils/textProcessing';
+import { startPractice, completePractice } from '../utils/segmentAPI';
 
 const GameContainer = styled.div`
   min-height: 100vh;
@@ -122,27 +124,73 @@ const KeyHint = styled(motion.div)`
   }
 `;
 
+// 定义新的数据结构接口
+interface ExtendedExerciseSegment {
+  id: string;
+  content: string;
+  pinyin: string[];
+  pinyinWithoutTones: string[];
+  translation?: string;
+  audioUrl?: string;
+  difficultyLevel: number;
+  exerciseId: string; // 添加exercise ID引用
+  exerciseIndex: number; // 添加exercise索引引用
+  // 其他可能需要的字段
+  segmentIndex?: number;
+  practiceOrder?: number;
+  segmentType?: string;
+  durationSeconds?: number;
+  userProgress?: any;
+}
+
+
+
 export interface GameState {
-  currentPhrase: typeof samplePhrases[0];
+  currentPhrase: {
+    content: string;
+    pinyin?: string | string[];
+    pinyinWithoutTones?: string[]; // 添加不带声调的拼音字段
+    translation?: string;
+    id?: string;
+    difficultyLevel?: number;
+    audioUrl?: string; // 添加音频URL字段
+  } | null;
   userInput: string;
-  inputMode: 'pinyin';
+  isPlaying: boolean;
+  showAnswer: boolean;
+  showPinyinHint: boolean;
+  gameStarted: boolean;
+  currentIndex: number;
   score: number;
+  totalAttempts: number;
+  correctAttempts: number;
+  inputMode: 'pinyin';
+  // 添加其他缺失的字段
   accuracy: number;
   speed: number;
-  isPlaying: boolean;
+  attempts: number;
   showResult: boolean;
   startTime: number | null;
-  attempts: number;
-  correctAttempts: number;
   showShareCard: boolean;
-  gameStarted: boolean;
-  showAnswer: boolean;
+  // 添加segment相关字段
+  currentExerciseId?: string; // 当前练习ID
+  currentSegmentId?: string;  // 当前segment ID
+  segmentStartTime?: number;  // segment开始时间
+  practiceMode: 'listening' | 'speaking' | 'reading' | 'writing'; // 练习模式
 }
 
 export const PinyinMode: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  
+  // 状态管理
+  const [allSegments, setAllSegments] = useState<ExtendedExerciseSegment[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hasInitialized, setHasInitialized] = useState(false);
+  
   const [gameState, setGameState] = useState<GameState>({
-    currentPhrase: samplePhrases[Math.floor(Math.random() * samplePhrases.length)],
+    currentPhrase: null,
     userInput: '',
     inputMode: 'pinyin',
     score: 0,
@@ -156,10 +204,137 @@ export const PinyinMode: React.FC = () => {
     showShareCard: false,
     gameStarted: false,
     showAnswer: false,
+    showPinyinHint: false,
+    currentIndex: 0,
+    totalAttempts: 0,
+    practiceMode: 'listening', // 默认为听力练习模式
   });
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const secondAudioRef = useRef<HTMLAudioElement | null>(null);
+
+      // 获取练习数据（支持两种URL参数）
+  useEffect(() => {
+    if (hasInitialized) return;
+    
+    // 优先使用 courseId，如果没有则尝试使用 exercises
+    const courseId = searchParams.get('courseId');
+    const exercisesParam = searchParams.get('exercises');
+    
+    if (!courseId && !exercisesParam) {
+      setError('缺少必要的参数：courseId 或 exercises');
+      return;
+    }
+    
+    setHasInitialized(true);
+    setLoading(true);
+    setError(null);
+    
+    const fetchData = async () => {
+      try {
+        let processedSegments: ExtendedExerciseSegment[] = [];
+        
+                 if (courseId) {
+           // 使用统一的接口
+           console.log('🔍 使用统一接口获取数据，courseId:', courseId);
+           const response = await getAllSegmentsFromCourse(courseId);
+           
+           console.log('📋 API响应数据结构:', response);
+           
+           for (const exercise of response.exercises) {
+             console.log('🔍 处理exercise:', exercise);
+             
+             if (!exercise || !exercise.id) {
+               console.error('❌ Exercise数据异常:', exercise);
+               continue;
+             }
+             
+             const segments = exercise.segments || [];
+             
+             const gameSegments = segments.map((segment: any) => {
+               // 过滤掉拼音数组中的标点符号
+               const filterPunctuation = (pinyinArray: string[]) => {
+                 return pinyinArray.filter(syllable => 
+                   syllable && !/[，。！？、；：""''（）《》【】—…·～]/.test(syllable)
+                 );
+               };
+               
+               return {
+                 id: segment.id,
+                 content: removeTrailingPunctuation(segment.content || ''),
+                 pinyin: filterPunctuation(segment.pinyinWithTones || []),
+                 pinyinWithoutTones: filterPunctuation(segment.pinyinWithoutTones || []),
+                 translation: segment.translation,
+                 audioUrl: segment.audioUrl,
+                 difficultyLevel: segment.difficultyLevel,
+                 exerciseId: exercise.id,
+                 exerciseIndex: (exercise.orderIndex || 1) - 1,
+                 segmentIndex: segment.segmentIndex,
+                 practiceOrder: segment.practiceOrder,
+                 segmentType: segment.segmentType,
+                 durationSeconds: segment.durationSeconds,
+                 userProgress: segment.userProgress,
+               };
+             });
+             
+             processedSegments.push(...gameSegments);
+             console.log(`📚 Exercise ${exercise.id}: 添加了 ${gameSegments.length} 个segments`);
+           }
+        } else if (exercisesParam) {
+          // 兼容旧的接口（临时方案）
+          console.log('🔍 使用兼容接口获取数据，exercises:', exercisesParam);
+          const rawExercises = JSON.parse(exercisesParam);
+          
+          for (const exercise of rawExercises) {
+            try {
+              const segments = await fetchExerciseSegments(exercise.id);
+              if (segments && segments.length > 0) {
+                const gameSegments = segments.map((segment: any) => ({
+                  ...segment,
+                  content: removeTrailingPunctuation(segment.chineseText || segment.content || ''),
+                  exerciseId: exercise.id,
+                  exerciseIndex: exercise.orderIndex - 1,
+                }));
+                processedSegments.push(...gameSegments);
+              }
+            } catch (err) {
+              console.error(`Failed to fetch segments for exercise ${exercise.id}:`, err);
+            }
+          }
+        }
+        
+        setAllSegments(processedSegments);
+        
+        if (processedSegments.length > 0) {
+          const firstSegment = processedSegments[0];
+          setGameState(prev => ({
+            ...prev,
+            currentPhrase: {
+              content: firstSegment.content || '',
+              pinyin: firstSegment.pinyin,
+              pinyinWithoutTones: firstSegment.pinyinWithoutTones,
+              translation: firstSegment.translation || '',
+              id: firstSegment.id,
+              difficultyLevel: firstSegment.difficultyLevel,
+              audioUrl: firstSegment.audioUrl || '',
+            },
+            currentExerciseId: firstSegment.exerciseId,
+            currentSegmentId: firstSegment.id,
+            segmentStartTime: Date.now(),
+          }));
+        } else {
+          setError('没有找到可用的练习数据');
+        }
+      } catch (err) {
+        console.error('Failed to fetch data:', err);
+        setError('获取数据失败');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, [searchParams, hasInitialized]);
 
   // 停止所有正在播放的音频
   const stopAllAudio = useCallback(() => {
@@ -210,24 +385,47 @@ export const PinyinMode: React.FC = () => {
     });
   }, [stopAllAudio]);
 
-  const startGame = useCallback(() => {
+  const startGame = useCallback(async () => {
+    // 确保有练习数据才能开始游戏
+    if (allSegments.length === 0) {
+      console.warn('No exercises available to start game');
+      return;
+    }
+    
     setGameState(prev => ({
       ...prev,
       gameStarted: true,
     }));
     
+    // 记录进入segment
+    if (gameState.currentExerciseId && gameState.currentSegmentId) {
+      try {
+        await startPractice(
+          gameState.currentExerciseId, 
+          gameState.currentSegmentId, 
+          gameState.practiceMode
+        );
+        console.log('Successfully started practice:', gameState.currentSegmentId);
+      } catch (error) {
+        console.error('Failed to start practice:', error);
+        // 不影响游戏进行，只记录错误
+      }
+    }
+    
     // 延迟一下然后自动播放语音两遍
     setTimeout(() => {
-      playAudioTwice(gameState.currentPhrase.audioUrl);
+      if (gameState.currentPhrase?.audioUrl) {
+        playAudioTwice(gameState.currentPhrase.audioUrl);
+      }
     }, 500);
-  }, [playAudioTwice, gameState.currentPhrase.audioUrl]);
+  }, [playAudioTwice, gameState.currentPhrase?.audioUrl, allSegments.length, gameState.currentExerciseId, gameState.currentSegmentId, gameState.practiceMode]);
 
   // 快捷键处理函数
   const handlePlayAudio = useCallback(() => {
-    if (!gameState.isPlaying) {
+    if (!gameState.isPlaying && gameState.currentPhrase?.audioUrl) {
       playAudioTwice(gameState.currentPhrase.audioUrl);
     }
-  }, [gameState.currentPhrase.audioUrl, gameState.isPlaying, playAudioTwice]);
+  }, [gameState.currentPhrase?.audioUrl, gameState.isPlaying, playAudioTwice]);
 
   const handleMaster = useCallback(() => {
     // TODO: Implement master functionality
@@ -244,22 +442,41 @@ export const PinyinMode: React.FC = () => {
     stopAllAudio();
     
     // 跳过当前题目，直接进入下一题
-    const newPhrase = samplePhrases[Math.floor(Math.random() * samplePhrases.length)];
-    setGameState(prev => ({
-      ...prev,
-      currentPhrase: newPhrase,
-      userInput: '',
-      showResult: false,
-      startTime: null,
-      isPlaying: false,
-      showAnswer: false,
-    }));
-    
-    // 自动播放新题目的语音两遍
-    setTimeout(() => {
-      playAudioTwice(newPhrase.audioUrl);
-    }, 500);
-  }, [stopAllAudio, playAudioTwice]);
+    if (allSegments.length > 0) {
+      const currentIndex = allSegments.findIndex(ex => ex.id === gameState.currentPhrase?.id);
+      const nextIndex = (currentIndex + 1) % allSegments.length;
+      const newPhrase = allSegments[nextIndex];
+      
+      setGameState(prev => ({
+        ...prev,
+        currentPhrase: {
+          content: newPhrase.content || '',
+          pinyin: newPhrase.pinyin,
+          pinyinWithoutTones: newPhrase.pinyinWithoutTones,
+          translation: newPhrase.translation || '',
+          id: newPhrase.id,
+          difficultyLevel: newPhrase.difficultyLevel,
+          audioUrl: newPhrase.audioUrl || '',
+        },
+        userInput: '',
+        showResult: false,
+        startTime: null,
+        isPlaying: false,
+        showAnswer: false,
+        // 更新segment和exercise信息
+        currentExerciseId: newPhrase.exerciseId,
+        currentSegmentId: newPhrase.id,
+        segmentStartTime: Date.now(),
+      }));
+      
+      // 自动播放新题目的语音两遍
+      if (newPhrase.audioUrl) {
+        setTimeout(() => {
+          playAudioTwice(newPhrase.audioUrl!);
+        }, 500);
+      }
+    }
+  }, [stopAllAudio, playAudioTwice, allSegments, gameState.currentPhrase?.id]);
 
   const handleSubmitShortcut = useCallback(() => {
     // TODO: Implement submit functionality
@@ -276,7 +493,7 @@ export const PinyinMode: React.FC = () => {
   // 监听键盘事件来开始游戏
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
-      if (!gameState.gameStarted && (e.code === 'Space' || e.code === 'Enter')) {
+      if (!gameState.gameStarted && allSegments.length > 0 && (e.code === 'Space' || e.code === 'Enter')) {
         e.preventDefault();
         startGame();
       }
@@ -284,7 +501,7 @@ export const PinyinMode: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState.gameStarted, startGame]);
+  }, [gameState.gameStarted, startGame, allSegments.length]);
 
   // 监听游戏内的快捷键
   useEffect(() => {
@@ -324,27 +541,77 @@ export const PinyinMode: React.FC = () => {
     return () => window.removeEventListener('keydown', handleShortcutKeys);
   }, [gameState.gameStarted, handlePlayAudio, handleMaster, handleNewWord, handleShowAnswer]);
 
-  const checkAnswer = useCallback(() => {
+  const checkAnswer = useCallback(async () => {
     // 停止当前播放的音频
     stopAllAudio();
     
-    // 直接进入下一题，不显示分数统计
-    const newPhrase = samplePhrases[Math.floor(Math.random() * samplePhrases.length)];
-    setGameState(prev => ({
-      ...prev,
-      currentPhrase: newPhrase,
-      userInput: '',
-      showResult: false,
-      startTime: null,
-      isPlaying: false,
-      showAnswer: false, // Hide answer when starting new question
-    }));
+    // 记录完成segment
+    if (gameState.currentExerciseId && gameState.currentSegmentId && gameState.segmentStartTime) {
+      try {
+        const timeSpentSeconds = Math.floor((Date.now() - gameState.segmentStartTime) / 1000);
+        await completePractice(
+          gameState.currentExerciseId, 
+          gameState.currentSegmentId, 
+          gameState.practiceMode,
+          timeSpentSeconds
+        );
+        console.log('Successfully completed practice:', gameState.currentSegmentId, 'Time spent:', timeSpentSeconds, 'seconds');
+      } catch (error) {
+        console.error('Failed to complete practice:', error);
+        // 不影响游戏进行，只记录错误
+      }
+    }
     
-    // 自动播放新题目的语音两遍
-    setTimeout(() => {
-      playAudioTwice(newPhrase.audioUrl);
-    }, 500);
-  }, [stopAllAudio, playAudioTwice]);
+    // 直接进入下一题，不显示分数统计
+    if (allSegments.length > 0) {
+      const currentIndex = allSegments.findIndex(ex => ex.id === gameState.currentPhrase?.id);
+      const nextIndex = (currentIndex + 1) % allSegments.length;
+      const newPhrase = allSegments[nextIndex];
+      
+      setGameState(prev => ({
+        ...prev,
+        currentPhrase: {
+          content: newPhrase.content || '',
+          pinyin: newPhrase.pinyin,
+          pinyinWithoutTones: newPhrase.pinyinWithoutTones,
+          translation: newPhrase.translation || '',
+          id: newPhrase.id,
+          difficultyLevel: newPhrase.difficultyLevel,
+          audioUrl: newPhrase.audioUrl || '',
+        },
+        userInput: '',
+        showResult: false,
+        startTime: null,
+        isPlaying: false,
+        showAnswer: false, // Hide answer when starting new question
+        // 更新segment和exercise信息
+        currentExerciseId: newPhrase.exerciseId,
+        currentSegmentId: newPhrase.id,
+        segmentStartTime: Date.now(),
+      }));
+      
+      // 自动播放新题目的语音两遍
+      if (newPhrase.audioUrl) {
+        setTimeout(() => {
+          playAudioTwice(newPhrase.audioUrl!);
+        }, 500);
+      }
+      
+      // 记录进入新的segment
+      if (newPhrase.exerciseId && newPhrase.id) {
+        try {
+          await startPractice(
+            newPhrase.exerciseId, 
+            newPhrase.id, 
+            gameState.practiceMode
+          );
+          console.log('Successfully entered new segment:', newPhrase.id);
+        } catch (error) {
+          console.error('Failed to enter new segment:', error);
+        }
+      }
+    }
+  }, [stopAllAudio, playAudioTwice, allSegments, gameState.currentPhrase?.id, gameState.currentExerciseId, gameState.currentSegmentId, gameState.segmentStartTime, gameState.practiceMode]);
 
   const closeShareCard = useCallback(() => {
     setGameState(prev => ({
@@ -356,7 +623,7 @@ export const PinyinMode: React.FC = () => {
   return (
     <GameContainer>
       <BackButton
-        onClick={() => navigate('/')}
+        onClick={() => navigate(-1)}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
       >
@@ -373,8 +640,71 @@ export const PinyinMode: React.FC = () => {
       </ModeIndicator>
       */}
 
-      {!gameState.gameStarted ? (
-        // Start screen
+      {/* 加载状态 */}
+      {loading && (
+        <ContentArea
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            style={{
+              textAlign: 'center',
+              color: '#a1a1aa',
+              fontSize: '1.1rem'
+            }}
+          >
+            正在加载练习数据...
+          </motion.div>
+        </ContentArea>
+      )}
+
+      {/* 错误状态 */}
+      {error && !loading && (
+        <ContentArea
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+            style={{
+              textAlign: 'center',
+              color: '#ef4444',
+              fontSize: '1.1rem',
+              padding: '20px',
+              background: 'rgba(239, 68, 68, 0.1)',
+              borderRadius: '12px',
+              border: '1px solid rgba(239, 68, 68, 0.3)'
+            }}
+          >
+            {error}
+            <br />
+            <button
+              onClick={() => window.location.reload()}
+              style={{
+                marginTop: '10px',
+                padding: '8px 16px',
+                background: '#ef4444',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer'
+              }}
+            >
+              重试
+            </button>
+          </motion.div>
+        </ContentArea>
+      )}
+
+      {/* 游戏开始界面 */}
+      {!gameState.gameStarted && !loading && !error && allSegments.length > 0 ? (
         <StartScreen
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -404,8 +734,10 @@ export const PinyinMode: React.FC = () => {
             Press Space or Enter to begin
           </KeyHint>
         </StartScreen>
-      ) : (
-        // Game screen
+      ) : null}
+
+      {/* 游戏界面 */}
+      {gameState.gameStarted && !loading && !error && allSegments.length > 0 && (
         <>
           <GameHint
             initial={{ opacity: 0, y: -10 }}
@@ -437,7 +769,11 @@ export const PinyinMode: React.FC = () => {
             {/* Answer display */}
             <AnswerDisplay
               isVisible={gameState.showAnswer}
-              phrase={gameState.currentPhrase}
+              phrase={gameState.currentPhrase ? {
+                content: gameState.currentPhrase.content,
+                pinyin: gameState.currentPhrase.pinyin,
+                translation: gameState.currentPhrase.translation
+              } : null}
             />
 
             <InputSystem
@@ -458,7 +794,15 @@ export const PinyinMode: React.FC = () => {
                 score={gameState.score}
                 accuracy={gameState.accuracy}
                 speed={gameState.speed}
-                phrase={gameState.currentPhrase}
+                phrase={gameState.currentPhrase ? {
+                  id: gameState.currentPhrase.id || '',
+                  content: gameState.currentPhrase.content,
+                  pinyin: gameState.currentPhrase.pinyin,
+                  pinyinWithoutTones: gameState.currentPhrase.pinyinWithoutTones,
+                  translation: gameState.currentPhrase.translation,
+                  audioUrl: gameState.currentPhrase.audioUrl,
+                  difficultyLevel: gameState.currentPhrase.difficultyLevel
+                } : null}
                 onClose={closeShareCard}
               />
             )}

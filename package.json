@@ -16,6 +16,7 @@
     "@types/react-dom": "^19.1.7",
     "@types/react-router-dom": "^5.3.3",
     "@types/styled-components": "^5.1.34",
+    "axios": "^1.11.0",
     "framer-motion": "^12.23.12",
     "gtag": "^1.0.1",
     "lucide-react": "^0.539.0",

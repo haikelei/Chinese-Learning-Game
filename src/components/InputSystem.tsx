@@ -80,9 +80,13 @@ const HiddenInput = styled.input`
 
 interface InputSystemProps {
   currentPhrase: {
-    pinyin: string;
-    chinese: string;
-  };
+    pinyin?: string | string[];
+    pinyinWithoutTones?: string[]; // 添加不带声调的拼音字段
+    content: string;
+    translation?: string;
+    id?: string;
+    difficultyLevel?: number;
+  } | null;
   userInput: string;
   onSubmit: (input: string) => void;
   disabled: boolean;
@@ -98,9 +102,52 @@ const calculateWidth = (syllable: string): number => {
   return width;
 };
 
+// 工具函数：判断是否为标点符号
+const isPunctuation = (char: string): boolean => {
+  return /[，。！？、；：""''（）《》【】—…·～]/.test(char);
+};
+
 // 解析拼音音节
-const parsePinyinSyllables = (pinyin: string): string[] => {
+const parsePinyinSyllables = (pinyin: string | string[]): string[] => {
+  if (Array.isArray(pinyin)) {
+    return pinyin.filter(syllable => syllable && syllable.length > 0);
+  }
   return pinyin.trim().split(/\s+/).filter(syllable => syllable.length > 0);
+};
+
+// 结合汉字和拼音，创建显示元素数组
+const createDisplayElements = (content: string, pinyin: string | string[]): Array<{
+  type: 'syllable' | 'punctuation';
+  content: string;
+  index: number;
+}> => {
+  const chineseChars = content.split('');
+  const syllables = parsePinyinSyllables(pinyin || '');
+  const elements: Array<{ type: 'syllable' | 'punctuation'; content: string; index: number }> = [];
+  
+  let syllableIndex = 0;
+  
+  chineseChars.forEach((char, charIndex) => {
+    if (isPunctuation(char)) {
+      // 标点符号直接添加
+      elements.push({
+        type: 'punctuation',
+        content: char,
+        index: charIndex
+      });
+    } else {
+      // 汉字对应的拼音音节
+      const syllable = syllables[syllableIndex] || '';
+      elements.push({
+        type: 'syllable',
+        content: syllable,
+        index: syllableIndex
+      });
+      syllableIndex++;
+    }
+  });
+  
+  return elements;
 };
 
 export const InputSystem: React.FC<InputSystemProps> = ({
@@ -110,29 +157,39 @@ export const InputSystem: React.FC<InputSystemProps> = ({
   disabled,
 }) => {
   const [currentInput, setCurrentInput] = useState('');
-  const [currentSyllableIndex, setCurrentSyllableIndex] = useState(0);
   const [syllableInputs, setSyllableInputs] = useState<string[]>([]);
-  const [isFocused, setIsFocused] = useState(false);
   const [errorSyllables, setErrorSyllables] = useState<Set<number>>(new Set());
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   
-  const syllables = parsePinyinSyllables(currentPhrase.pinyin);
+  // 创建显示元素（拼音音节 + 标点符号）
+  // 优先使用不带声调的拼音进行校验，使用带声调的拼音进行显示
+  const displayPinyin = currentPhrase?.pinyin || '';
+  const validationPinyin = currentPhrase?.pinyinWithoutTones || currentPhrase?.pinyin || '';
+  
+  const displayElements = currentPhrase ? createDisplayElements(currentPhrase.content, displayPinyin) : [];
+  
+  // 只获取拼音音节（不包括标点符号）
+  const syllablesOnly = displayElements.filter(element => element.type === 'syllable');
+  const syllables = syllablesOnly.map(element => element.content);
+  
+  // 用于校验的拼音（不带声调）
+  const validationSyllables = Array.isArray(validationPinyin) 
+    ? validationPinyin.filter(syllable => syllable && syllable.length > 0)
+    : validationPinyin.trim().split(/\s+/).filter(syllable => syllable.length > 0);
 
   useEffect(() => {
     // 初始化音节输入数组 - 只在题目变化时重置
     setSyllableInputs(new Array(syllables.length).fill(''));
-    setCurrentSyllableIndex(0);
     setCurrentInput('');
     
-    // 自动聚焦到输入框
+    // 自动聚焦到输入框，确保用户可以直接输入
     if (hiddenInputRef.current) {
       setTimeout(() => {
         hiddenInputRef.current?.focus();
-        setIsFocused(true);
       }, 100);
     }
-  }, [currentPhrase.pinyin, syllables.length]);
+  }, [currentPhrase?.pinyin, syllables.length]);
 
   // 监听全局键盘事件，处理弹窗状态下的回车键
   useEffect(() => {
@@ -174,7 +231,7 @@ export const InputSystem: React.FC<InputSystemProps> = ({
     
     setCurrentInput(value);
     
-    // 只有当用户输入空格时才分割音节
+    // 更新音节输入显示
     const inputSyllables = value.split(' ');
     const newSyllableInputs = [...syllableInputs];
     
@@ -191,11 +248,7 @@ export const InputSystem: React.FC<InputSystemProps> = ({
     }
     
     setSyllableInputs(newSyllableInputs);
-    
-    // 当前活跃的横线是最后一个有输入的音节，或者第一个空的音节
-    const lastFilledIndex = inputSyllables.length - 1;
-    setCurrentSyllableIndex(Math.max(0, Math.min(lastFilledIndex, syllables.length - 1)));
-  }, [currentInput, syllableInputs, syllables.length]);
+  }, [currentInput, syllableInputs]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !disabled) {
@@ -212,7 +265,7 @@ export const InputSystem: React.FC<InputSystemProps> = ({
         
         // 验证输入
         const userSyllables = currentInput.trim().toLowerCase().split(' ');
-        const correctSyllables = syllables.map(s => s.toLowerCase());
+        const correctSyllables = validationSyllables.map(s => s.toLowerCase());
         
         // 检查是否完全正确
         const isCorrect = userSyllables.length === correctSyllables.length && 
@@ -248,29 +301,20 @@ export const InputSystem: React.FC<InputSystemProps> = ({
         }
       }
     }
-  }, [currentInput, disabled, syllables, onSubmit, showSuccessModal]);
-
-  const handleLineClick = useCallback((index: number) => {
-    if (!disabled && hiddenInputRef.current) {
-      setCurrentSyllableIndex(index);
-      hiddenInputRef.current.focus();
-      setIsFocused(true);
-    }
-  }, [disabled]);
+  }, [currentInput, disabled, validationSyllables, onSubmit, showSuccessModal]);
 
   const handleFocus = useCallback(() => {
-    setIsFocused(true);
+    // 保持焦点，确保用户可以继续输入
   }, []);
 
   const handleBlur = useCallback(() => {
-    setIsFocused(false);
+    // 失去焦点时自动重新聚焦，确保用户始终可以输入
+    setTimeout(() => {
+      if (hiddenInputRef.current) {
+        hiddenInputRef.current.focus();
+      }
+    }, 100);
   }, []);
-
-  const cursorVariants = {
-    blink: {
-      opacity: [1, 0, 1],
-    }
-  };
 
   return (
     <>
@@ -287,33 +331,45 @@ export const InputSystem: React.FC<InputSystemProps> = ({
         />
         
         <TypewriterLines>
-          {syllables.map((syllable, index) => {
-            const width = calculateWidth(syllable);
-            const isActive = index === currentSyllableIndex && isFocused;
-            const isError = errorSyllables.has(index);
-            const currentSyllableInput = syllableInputs[index] || '';
+          {displayElements.map((element, elementIndex) => {
+            if (element.type === 'punctuation') {
+              // 标点符号直接显示
+              return (
+                <div
+                  key={`punct-${elementIndex}`}
+                  style={{
+                    fontSize: '1.4rem',
+                    fontWeight: '500',
+                    color: '#d4d4d8',
+                    display: 'flex',
+                    alignItems: 'flex-end',
+                    justifyContent: 'center',
+                    fontFamily: "'Monaco', 'Consolas', 'Liberation Mono', 'Courier New', monospace",
+                    minWidth: '20px',
+                    height: '1.4rem',
+                    marginBottom: '8px',
+                  }}
+                >
+                  {element.content}
+                </div>
+              );
+            }
+            
+            // 拼音音节输入框 - 保持横线样式但不需要点击
+            const syllableIndex = element.index;
+            const width = calculateWidth(element.content);
+            const isError = errorSyllables.has(syllableIndex);
+            const currentSyllableInput = syllableInputs[syllableIndex] || '';
             
             return (
-              <LineContainer key={index} onClick={() => handleLineClick(index)}>
-                <InputText isActive={isActive}>
+              <LineContainer key={`syllable-${elementIndex}`}>
+                <InputText isActive={false}>
                   {currentSyllableInput}
-                  {isActive && !disabled && (
-                    <Cursor
-                      variants={cursorVariants}
-                      animate="blink"
-                      transition={{
-                        duration: 1,
-                        repeat: Infinity,
-                        ease: "easeInOut"
-                      }}
-                    />
-                  )}
                 </InputText>
                 <InputLine
                   width={width}
-                  isActive={isActive}
+                  isActive={false}
                   isError={isError}
-                  whileHover={{ scale: 1.02 }}
                   animate={isError ? {
                     x: [-5, 5, -5, 5, 0],
                   } : {}}
@@ -321,7 +377,6 @@ export const InputSystem: React.FC<InputSystemProps> = ({
                     duration: 0.4,
                     ease: "easeInOut"
                   } : {}}
-                  style={{ cursor: disabled ? 'default' : 'pointer' }}
                 />
               </LineContainer>
             );

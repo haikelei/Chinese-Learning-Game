@@ -2,7 +2,16 @@ import React, { useRef, useCallback } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import { X, Download, Copy, Target, Zap, CheckCircle } from 'lucide-react';
-import { Phrase } from '../data/samplePhrases';
+// 使用新的练习片段接口
+interface Phrase {
+  id: string;
+  content: string;
+  pinyin?: string | string[];
+  pinyinWithoutTones?: string[]; // 添加不带声调的拼音字段
+  translation?: string;
+  audioUrl?: string;
+  difficultyLevel?: number;
+}
 
 const Overlay = styled(motion.div)`
   position: fixed;
@@ -184,7 +193,7 @@ interface ShareCardProps {
   score: number;
   accuracy: number;
   speed: number;
-  phrase: Phrase;
+  phrase: Phrase | null;
   onClose: () => void;
 }
 
@@ -210,7 +219,10 @@ export const ShareCard: React.FC<ShareCardProps> = ({
   }, []);
 
   const handleCopyLink = useCallback(() => {
-    const shareText = `我在中文听力解码游戏中获得了 ${score} 分！正确理解了"${phrase.chinese}"(${phrase.pinyin}) - ${phrase.translation}。快来挑战你的中文听力吧！`;
+    if (!phrase) return;
+    
+    const pinyinText = Array.isArray(phrase.pinyin) ? phrase.pinyin.join(' ') : phrase.pinyin;
+    const shareText = `我在中文听力解码游戏中获得了 ${score} 分！正确理解了"${phrase.content}"(${pinyinText}) - ${phrase.translation}。快来挑战你的中文听力吧！`;
     
     if (navigator.share) {
       navigator.share({
@@ -260,11 +272,13 @@ export const ShareCard: React.FC<ShareCardProps> = ({
             <Subtitle>中文听力解码挑战成功</Subtitle>
           </CardHeader>
 
-          <PhraseDisplay>
-            <ChineseText>{phrase.chinese}</ChineseText>
-            <PinyinText>{phrase.pinyin}</PinyinText>
-            <TranslationText>{phrase.translation}</TranslationText>
-          </PhraseDisplay>
+          {phrase && (
+            <PhraseDisplay>
+              <ChineseText>{phrase.content}</ChineseText>
+              <PinyinText>{Array.isArray(phrase.pinyin) ? phrase.pinyin.join(' ') : phrase.pinyin}</PinyinText>
+              <TranslationText>{phrase.translation}</TranslationText>
+            </PhraseDisplay>
+          )}
 
           <StatsGrid>
             <StatItem>

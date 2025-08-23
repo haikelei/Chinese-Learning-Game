@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { motion } from 'framer-motion';
 import {
@@ -12,6 +12,7 @@ import {
   Portal
 } from '@chakra-ui/react';
 import { typewriterSound } from '../utils/typewriterSound';
+import { isPunctuation } from '../utils/textProcessing';
 
 const InputContainer = styled.div`
   margin: 80px 0 40px;
@@ -107,12 +108,17 @@ const Cursor = styled(motion.div)`
 
 interface ChineseInputSystemProps {
   currentPhrase: {
-    pinyin: string;
-    chinese: string;
-  };
+    content: string;
+    pinyin?: string | string[];
+    pinyinWithoutTones?: string[]; // 添加不带声调的拼音字段
+    translation?: string;
+    id?: string;
+    difficultyLevel?: number;
+  } | null;
   onSubmit: (input: string) => void;
-  disabled: boolean;
+  disabled?: boolean;
   showPinyinHint: boolean;
+  inputMode: 'chinese';
 }
 
 export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
@@ -129,8 +135,24 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
   const [isComposing, setIsComposing] = useState(false); // 处理输入法状态
   const hiddenInputRef = useRef<HTMLInputElement>(null);
 
-  const chineseChars = currentPhrase.chinese.split('');
-  const pinyinSyllables = currentPhrase.pinyin.split(' ');
+  // 使用导入的文本处理工具函数
+
+  // 计算字符数组和拼音数组，如果没有当前短语则使用空数组
+  const chineseChars = currentPhrase?.content?.split('') || [];
+  // 优先使用不带声调的拼音进行校验，如果没有则使用带声调的拼音
+  const pinyinSyllables = currentPhrase?.pinyinWithoutTones || 
+    (Array.isArray(currentPhrase?.pinyin) 
+      ? (currentPhrase?.pinyin || []) 
+      : (currentPhrase?.pinyin || '').split(' '));
+  
+  // 用于显示的拼音（带声调）
+  const displayPinyinSyllables = Array.isArray(currentPhrase?.pinyin) 
+    ? (currentPhrase?.pinyin || []) 
+    : (currentPhrase?.pinyin || '').split(' ');
+
+  // 计算需要用户输入的字符（排除标点符号）
+  const nonPunctuationChars = chineseChars.filter(char => !isPunctuation(char));
+  const nonPunctuationCount = nonPunctuationChars.length;
 
   useEffect(() => {
     // 重置状态当题目变化时
@@ -142,7 +164,7 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
     if (hiddenInputRef.current) {
       hiddenInputRef.current.focus();
     }
-  }, [currentPhrase.chinese]);
+  }, [currentPhrase?.content]);
 
   // 监听全局键盘事件，处理弹窗状态下的回车键
   useEffect(() => {
@@ -171,8 +193,8 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
     // 同时更新两个状态：内部输入值和显示值
     setInternalInputValue(value);
     setUserInput(value);
-    setCurrentCharIndex(Math.min(value.length, chineseChars.length - 1));
-  }, [chineseChars.length]);
+    setCurrentCharIndex(Math.min(value.length, nonPunctuationCount - 1));
+  }, [nonPunctuationCount]);
 
   // 处理普通输入变化
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -193,9 +215,9 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
       }
       
       setUserInput(value);
-      setCurrentCharIndex(Math.min(value.length, chineseChars.length - 1));
+      setCurrentCharIndex(Math.min(value.length, nonPunctuationCount - 1));
     }
-  }, [isComposing, userInput, chineseChars.length]);
+  }, [isComposing, userInput, nonPunctuationCount, nonPunctuationChars]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !disabled && !isComposing) {
@@ -209,7 +231,9 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
       if (userInput.trim()) {
         typewriterSound.playEnter();
         
-        const isCorrect = userInput.trim() === currentPhrase.chinese;
+        // 只比较非标点符号部分
+        const expectedInput = nonPunctuationChars.join('');
+        const isCorrect = userInput.trim() === expectedInput;
         
         if (isCorrect) {
           typewriterSound.playSuccess();
@@ -222,13 +246,13 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
           const userChars = userInput.split('');
           
           userChars.forEach((char, index) => {
-            if (index >= chineseChars.length || char !== chineseChars[index]) {
+            if (index >= nonPunctuationChars.length || char !== nonPunctuationChars[index]) {
               errorIndices.add(index);
             }
           });
           
           // 标记所有缺失的字符为错误
-          for (let i = userChars.length; i < chineseChars.length; i++) {
+          for (let i = userChars.length; i < nonPunctuationChars.length; i++) {
             errorIndices.add(i);
           }
           
@@ -240,7 +264,7 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
         }
       }
     }
-  }, [userInput, currentPhrase.chinese, chineseChars, showSuccessModal, disabled, isComposing, onSubmit]);
+  }, [userInput, currentPhrase?.content, chineseChars, showSuccessModal, disabled, isComposing, onSubmit]);
 
   const handleBoxClick = useCallback((index: number) => {
     if (!disabled) {
@@ -256,6 +280,19 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
       opacity: [1, 0, 1],
     }
   };
+
+  const getPinyinForChar = useCallback((index: number) => {
+    return displayPinyinSyllables[index] || '';
+  }, [displayPinyinSyllables]);
+
+  // 如果没有当前短语，显示加载状态
+  if (!currentPhrase) {
+    return (
+      <InputContainer>
+        <Text color="gray.400">加载中...</Text>
+      </InputContainer>
+    );
+  }
 
   return (
     <>
@@ -275,10 +312,36 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
 
         <CharacterBoxes>
           {chineseChars.map((char, index) => {
-            const isActive = index === currentCharIndex;
-            const isError = errorChars.has(index);
-            const hasContent = index < userInput.length;
-            const userChar = userInput[index] || '';
+            const isPunctuationChar = isPunctuation(char);
+            
+            if (isPunctuationChar) {
+              // 标点符号直接显示，不需要输入框
+              return (
+                <div
+                  key={index}
+                  style={{
+                    fontSize: '2.5rem',
+                    fontWeight: '500',
+                    color: '#e4e4e7',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontFamily: "'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'SimSun', sans-serif",
+                    minWidth: '40px',
+                    height: '80px',
+                  }}
+                >
+                  {char}
+                </div>
+              );
+            }
+
+            // 计算当前字符在非标点符号中的索引
+            const nonPunctuationIndex = chineseChars.slice(0, index).filter(c => !isPunctuation(c)).length;
+            const isActive = nonPunctuationIndex === currentCharIndex;
+            const isError = errorChars.has(nonPunctuationIndex);
+            const hasContent = nonPunctuationIndex < userInput.length;
+            const userChar = userInput[nonPunctuationIndex] || '';
             const pinyinForChar = pinyinSyllables[index] || '';
 
             return (
@@ -287,7 +350,7 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
                 isActive={isActive}
                 isError={isError}
                 hasContent={hasContent}
-                onClick={() => handleBoxClick(index)}
+                onClick={() => handleBoxClick(nonPunctuationIndex)}
                 whileHover={{ scale: 1.05 }}
                 animate={isError ? {
                   x: [-5, 5, -5, 5, 0],
@@ -298,9 +361,9 @@ export const ChineseInputSystem: React.FC<ChineseInputSystemProps> = ({
                 } : {}}
               >
                 {/* 每个字符框上方的拼音提示 */}
-                <PinyinLabel isVisible={showPinyinHint && !!pinyinForChar}>
-                  {pinyinForChar}
-                </PinyinLabel>
+                        <PinyinLabel isVisible={showPinyinHint && !!getPinyinForChar(index)}>
+          {getPinyinForChar(index)}
+        </PinyinLabel>
                 
                 {userChar}
                 {isActive && !disabled && (
