@@ -18,23 +18,18 @@ const SidebarContainer = styled.div`
 `;
 
 const SidebarHeader = styled.div`
-  margin-bottom: 24px;
-  padding-bottom: 16px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 16px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
 `;
 
-const SidebarTitle = styled.h2`
-  font-size: 1.2rem;
-  font-weight: 600;
-  color: #e4e4e7;
-  margin: 0 0 6px 0;
-`;
+
 
 const SidebarSubtitle = styled.p`
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   color: #a1a1aa;
   margin: 0;
-  opacity: 0.8;
+  opacity: 0.7;
 `;
 
 const ExerciseList = styled.div`
@@ -81,7 +76,7 @@ const ExerciseHeader = styled.div`
 `;
 
 const ExerciseTitle = styled.h3<{ isCompleted: boolean }>`
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 500;
   color: ${props => props.isCompleted ? '#22c55e' : '#e4e4e7'};
   margin: 0;
@@ -120,10 +115,10 @@ const ProgressText = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 6px;
-  font-size: 0.75rem;
+  margin-top: 4px;
+  font-size: 0.7rem;
   color: #a1a1aa;
-  opacity: 0.8;
+  opacity: 0.7;
 `;
 
 const SegmentCount = styled.span`
@@ -176,13 +171,12 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
   return (
     <SidebarContainer>
       <SidebarHeader>
-        <SidebarTitle>练习进度</SidebarTitle>
         <SidebarSubtitle>
-          已完成 {completedExercises}/{totalExercises} 个练习
+          {completedExercises}/{totalExercises}
         </SidebarSubtitle>
         
         {/* 整体进度条 */}
-        <ProgressContainer style={{ marginTop: '16px' }}>
+        <ProgressContainer style={{ marginTop: '12px' }}>
           <ProgressBar>
             <ProgressFill 
               percentage={overallProgress} 
@@ -193,7 +187,6 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
             />
           </ProgressBar>
           <ProgressText>
-            <span>整体进度</span>
             <span>{overallProgress.toFixed(1)}%</span>
           </ProgressText>
         </ProgressContainer>
@@ -214,7 +207,7 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
           >
             <ExerciseHeader>
               <ExerciseTitle isCompleted={exercise.isCompleted}>
-                练习 {exercise.orderIndex}
+                {exercise.orderIndex}
               </ExerciseTitle>
               <ExerciseStatus isCompleted={exercise.isCompleted} />
             </ExerciseHeader>
@@ -231,7 +224,7 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
               </ProgressBar>
               <ProgressText>
                 <SegmentCount>
-                  {exercise.completedSegments}/{exercise.totalSegments} 片段
+                  {exercise.completedSegments}/{exercise.totalSegments}
                 </SegmentCount>
                 <span>{exercise.progressPercentage.toFixed(0)}%</span>
               </ProgressText>
