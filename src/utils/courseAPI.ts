@@ -20,6 +20,7 @@ export interface UserRecentCourse {
 export interface UserRecentCoursesResponse {
   courses: UserRecentCourse[];
   totalCount: number;
+  hasProgress: boolean;
 }
 
 // 课程包接口
@@ -321,10 +322,12 @@ export const convertExerciseToPhrase = (exercise: Exercise): any => {
 // 获取用户最近学习的课程
 export const fetchUserRecentCourses = async (limit: number = 10): Promise<UserRecentCoursesResponse> => {
   try {
-    const response = await api.get(`/courses/user/recent?limit=${limit}`);
-    return response.data;
+    console.log('🔍 开始获取用户最近课程...');
+    const result = await api.get(`/courses/user/recent?limit=${limit}`);
+    console.log('📊 API返回结果:', result);
+    return result;
   } catch (error) {
-    console.error('Failed to fetch user recent courses:', error);
+    console.error('❌ 获取用户最近课程失败:', error);
     throw error;
   }
 };

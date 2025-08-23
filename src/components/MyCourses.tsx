@@ -45,7 +45,31 @@ export const MyCourses: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      console.log('🔍 开始获取用户最近课程数据...');
+      
       const response = await fetchUserRecentCourses(50); // 获取更多数据用于统计
+      
+      console.log('📊 API响应数据:', response);
+      console.log('📊 响应数据类型:', typeof response);
+      console.log('📊 响应是否为null:', response === null);
+      console.log('📊 响应是否为undefined:', response === undefined);
+      
+      // 检查响应数据结构
+      if (!response) {
+        console.error('❌ API响应为空:', response);
+        throw new Error('API响应为空，请检查网络连接');
+      }
+      
+      if (!response.courses) {
+        console.error('❌ API响应中没有courses字段:', response);
+        console.error('📝 响应的所有字段:', Object.keys(response));
+        throw new Error('API响应格式不正确：缺少courses字段');
+      }
+      
+      if (!Array.isArray(response.courses)) {
+        console.error('❌ courses字段不是数组:', response.courses);
+        throw new Error('API响应格式不正确：courses不是数组');
+      }
       
       // 按课程包分组
       const packagesMap = new Map<string, UserCoursePackage>();
