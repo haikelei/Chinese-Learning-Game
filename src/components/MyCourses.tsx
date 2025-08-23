@@ -180,18 +180,8 @@ export const MyCourses: React.FC = () => {
     );
   }
 
-  return (
-    <Box p="8">
-      {/* 页面标题 */}
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <Heading size="lg" color="white" mb="6">
-          我的课程包
-        </Heading>
-      </motion.div>
+      return (
+      <Box p="8">
 
       {/* 学习统计 */}
       {coursePackages.length > 0 && (
