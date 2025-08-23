@@ -147,6 +147,21 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
   const completedExercises = exercises.filter(ex => ex.isCompleted).length;
   const overallProgress = totalExercises > 0 ? (completedExercises / totalExercises) * 100 : 0;
 
+  // 添加调试信息
+  console.log('📊 ExerciseSidebar 渲染数据:', {
+    totalExercises,
+    completedExercises,
+    overallProgress,
+    exercises: exercises.map(ex => ({
+      id: ex.id,
+      title: ex.title,
+      progressPercentage: ex.progressPercentage,
+      isCompleted: ex.isCompleted,
+      completedSegments: ex.completedSegments,
+      totalSegments: ex.totalSegments
+    }))
+  });
+
   return (
     <SidebarContainer>
       <SidebarHeader>
@@ -161,8 +176,8 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
             <ProgressFill 
               percentage={overallProgress} 
               isCompleted={overallProgress === 100}
-              initial={{ width: 0 }}
-              animate={{ width: overallProgress }}
+              initial={{ width: '0%' }}
+              animate={{ width: `${overallProgress}%` }}
               transition={{ duration: 0.8, ease: "easeOut" }}
             />
           </ProgressBar>
@@ -198,8 +213,8 @@ export const ExerciseSidebar: React.FC<ExerciseSidebarProps> = ({
                 <ProgressFill 
                   percentage={exercise.progressPercentage} 
                   isCompleted={exercise.isCompleted}
-                  initial={{ width: 0 }}
-                  animate={{ width: exercise.progressPercentage }}
+                  initial={{ width: '0%' }}
+                  animate={{ width: `${exercise.progressPercentage}%` }}
                   transition={{ duration: 0.8, ease: "easeOut" }}
                 />
               </ProgressBar>

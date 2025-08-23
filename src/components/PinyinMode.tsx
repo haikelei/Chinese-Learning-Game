@@ -221,9 +221,23 @@ export const PinyinMode: React.FC = () => {
     const segments = exercise.segments || [];
     const totalSegments = segments.length;
     const completedSegments = segments.filter((s: any) => s.userProgress?.isCompleted).length;
+    const progressPercentage = totalSegments > 0 ? (completedSegments / totalSegments) * 100 : 0;
+    
+    // 添加调试信息
+    console.log(`🔍 计算Exercise ${exercise.id} 进度:`, {
+      exerciseTitle: exercise.title,
+      totalSegments,
+      completedSegments,
+      progressPercentage,
+      isCompleted: completedSegments === totalSegments,
+      segments: segments.map((s: any) => ({
+        id: s.id,
+        isCompleted: s.userProgress?.isCompleted
+      }))
+    });
     
     return {
-      progressPercentage: totalSegments > 0 ? (completedSegments / totalSegments) * 100 : 0,
+      progressPercentage,
       isCompleted: completedSegments === totalSegments,
       completedSegments,
       totalSegments
