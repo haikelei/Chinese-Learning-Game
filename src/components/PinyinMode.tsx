@@ -716,6 +716,9 @@ export const PinyinMode: React.FC = () => {
     const firstSegment = allSegments.find(seg => seg.exerciseId === exerciseId);
     if (!firstSegment) return;
     
+    // 先停止所有正在播放的音频，避免重复播放
+    stopAllAudio();
+    
     // 更新当前exercise状态
     setExerciseList(prev => prev.map(ex => ({
       ...ex,
@@ -744,11 +747,11 @@ export const PinyinMode: React.FC = () => {
       showAnswer: false,
     }));
     
-    // 自动播放新题目的语音
+    // 延迟播放新题目的语音，确保之前的音频完全停止
     if (firstSegment.audioUrl) {
       setTimeout(() => {
         playAudioTwice(firstSegment.audioUrl!);
-      }, 500);
+      }, 100); // 减少延迟时间，提高响应速度
     }
     
     // 记录进入新的segment
@@ -757,7 +760,7 @@ export const PinyinMode: React.FC = () => {
         .then(() => console.log('Successfully entered new segment:', firstSegment.id))
         .catch(error => console.error('Failed to enter new segment:', error));
     }
-  }, [exerciseList, allSegments, playAudioTwice, gameState.practiceMode]);
+  }, [exerciseList, allSegments, playAudioTwice, gameState.practiceMode, stopAllAudio]);
 
   return (
     <>
