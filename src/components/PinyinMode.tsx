@@ -6,6 +6,7 @@ import { InputSystem } from './InputSystem';
 import { AnswerDisplay } from './AnswerDisplay';
 import { BottomShortcutBar } from './BottomShortcutBar';
 import { ShareCard } from './ShareCard';
+import { ExerciseSidebar } from './ExerciseSidebar';
 import { getAllSegmentsFromCourse, fetchExerciseSegments } from '../utils/courseAPI';
 import { removeTrailingPunctuation } from '../utils/textProcessing';
 import { startPractice, completePractice } from '../utils/segmentAPI';
@@ -19,6 +20,7 @@ const GameContainer = styled.div`
   justify-content: center;
   padding: 40px 20px;
   position: relative;
+  margin-left: 300px; /* 为左侧sidebar留出空间 */
 `;
 
 const BackButton = styled(motion.button)`
@@ -185,6 +187,7 @@ export const PinyinMode: React.FC = () => {
   
   // 状态管理
   const [allSegments, setAllSegments] = useState<ExtendedExerciseSegment[]>([]);
+  const [exerciseList, setExerciseList] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [hasInitialized, setHasInitialized] = useState(false);
@@ -212,6 +215,46 @@ export const PinyinMode: React.FC = () => {
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const secondAudioRef = useRef<HTMLAudioElement | null>(null);
+
+  // 计算exercise进度的函数
+  const calculateExerciseProgress = useCallback((exercise: any) => {
+    const segments = exercise.segments || [];
+    const totalSegments = segments.length;
+    const completedSegments = segments.filter((s: any) => s.userProgress?.isCompleted).length;
+    
+    return {
+      progressPercentage: totalSegments > 0 ? (completedSegments / totalSegments) * 100 : 0,
+      isCompleted: completedSegments === totalSegments,
+      completedSegments,
+      totalSegments
+    };
+  }, []);
+
+  // 更新exercise进度的函数
+  const updateExerciseProgress = useCallback((exerciseId: string, newProgress: any) => {
+    setExerciseList(prev => prev.map(ex => 
+      ex.id === exerciseId 
+        ? { ...ex, ...newProgress }
+        : ex
+    ));
+  }, []);
+
+  // 更新segment状态的函数
+  const updateSegmentStatus = useCallback((exerciseId: string, segmentId: string, isCompleted: boolean) => {
+    setExerciseList(prev => prev.map(ex => {
+      if (ex.id === exerciseId) {
+        const updatedSegments = ex.segments.map((seg: any) => 
+          seg.id === segmentId 
+            ? { ...seg, userProgress: { ...seg.userProgress, isCompleted } }
+            : seg
+        );
+        
+        const newProgress = calculateExerciseProgress({ ...ex, segments: updatedSegments });
+        return { ...ex, segments: updatedSegments, ...newProgress };
+      }
+      return ex;
+    }));
+  }, [calculateExerciseProgress]);
 
       // 获取练习数据（支持两种URL参数）
   useEffect(() => {
@@ -277,9 +320,18 @@ export const PinyinMode: React.FC = () => {
                };
              });
              
-             processedSegments.push(...gameSegments);
-             console.log(`📚 Exercise ${exercise.id}: 添加了 ${gameSegments.length} 个segments`);
-           }
+                        processedSegments.push(...gameSegments);
+           console.log(`📚 Exercise ${exercise.id}: 添加了 ${gameSegments.length} 个segments`);
+           
+           // 计算exercise进度并添加到exerciseList
+           const exerciseProgress = calculateExerciseProgress(exercise);
+           const exerciseWithProgress = {
+             ...exercise,
+             ...exerciseProgress,
+             isCurrent: false // 稍后设置当前exercise
+           };
+           setExerciseList(prev => [...prev, exerciseWithProgress]);
+         }
         } else if (exercisesParam) {
           // 兼容旧的接口（临时方案）
           console.log('🔍 使用兼容接口获取数据，exercises:', exercisesParam);
@@ -307,6 +359,13 @@ export const PinyinMode: React.FC = () => {
         
         if (processedSegments.length > 0) {
           const firstSegment = processedSegments[0];
+          
+          // 设置当前exercise状态
+          setExerciseList(prev => prev.map(ex => ({
+            ...ex,
+            isCurrent: ex.id === firstSegment.exerciseId
+          })));
+          
           setGameState(prev => ({
             ...prev,
             currentPhrase: {
@@ -556,6 +615,9 @@ export const PinyinMode: React.FC = () => {
           timeSpentSeconds
         );
         console.log('Successfully completed practice:', gameState.currentSegmentId, 'Time spent:', timeSpentSeconds, 'seconds');
+        
+        // 更新segment状态和exercise进度
+        updateSegmentStatus(gameState.currentExerciseId, gameState.currentSegmentId, true);
       } catch (error) {
         console.error('Failed to complete practice:', error);
         // 不影响游戏进行，只记录错误
@@ -620,15 +682,78 @@ export const PinyinMode: React.FC = () => {
     }));
   }, []);
 
+  // 处理exercise选择
+  const handleExerciseSelect = useCallback((exerciseId: string) => {
+    // 找到选中的exercise
+    const selectedExercise = exerciseList.find(ex => ex.id === exerciseId);
+    if (!selectedExercise) return;
+    
+    // 找到该exercise的第一个segment
+    const firstSegment = allSegments.find(seg => seg.exerciseId === exerciseId);
+    if (!firstSegment) return;
+    
+    // 更新当前exercise状态
+    setExerciseList(prev => prev.map(ex => ({
+      ...ex,
+      isCurrent: ex.id === exerciseId
+    })));
+    
+    // 更新游戏状态
+    setGameState(prev => ({
+      ...prev,
+      currentPhrase: {
+        content: firstSegment.content || '',
+        pinyin: firstSegment.pinyin,
+        pinyinWithoutTones: firstSegment.pinyinWithoutTones,
+        translation: firstSegment.translation || '',
+        id: firstSegment.id,
+        difficultyLevel: firstSegment.difficultyLevel,
+        audioUrl: firstSegment.audioUrl || '',
+      },
+      currentExerciseId: firstSegment.exerciseId,
+      currentSegmentId: firstSegment.id,
+      segmentStartTime: Date.now(),
+      userInput: '',
+      showResult: false,
+      startTime: null,
+      isPlaying: false,
+      showAnswer: false,
+    }));
+    
+    // 自动播放新题目的语音
+    if (firstSegment.audioUrl) {
+      setTimeout(() => {
+        playAudioTwice(firstSegment.audioUrl!);
+      }, 500);
+    }
+    
+    // 记录进入新的segment
+    if (firstSegment.exerciseId && firstSegment.id) {
+      startPractice(firstSegment.exerciseId, firstSegment.id, gameState.practiceMode)
+        .then(() => console.log('Successfully entered new segment:', firstSegment.id))
+        .catch(error => console.error('Failed to enter new segment:', error));
+    }
+  }, [exerciseList, allSegments, playAudioTwice, gameState.practiceMode]);
+
   return (
-    <GameContainer>
-      <BackButton
-        onClick={() => navigate(-1)}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-      >
-        ← Back
-      </BackButton>
+    <>
+      {/* 左侧Exercise列表 */}
+      {exerciseList.length > 0 && (
+        <ExerciseSidebar
+          exercises={exerciseList}
+          currentExerciseId={gameState.currentExerciseId || ''}
+          onExerciseSelect={handleExerciseSelect}
+        />
+      )}
+      
+      <GameContainer>
+        <BackButton
+          onClick={() => navigate(-1)}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          ← Back
+        </BackButton>
 
       {/* 隐藏模式指示器，界面更简洁
       <ModeIndicator
@@ -820,6 +945,7 @@ export const PinyinMode: React.FC = () => {
           />
         </>
       )}
-    </GameContainer>
+      </GameContainer>
+    </>
   );
 };
