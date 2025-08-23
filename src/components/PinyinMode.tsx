@@ -11,7 +11,7 @@ import { getAllSegmentsFromCourse, fetchExerciseSegments } from '../utils/course
 import { removeTrailingPunctuation } from '../utils/textProcessing';
 import { startPractice, completePractice } from '../utils/segmentAPI';
 
-const GameContainer = styled.div`
+const GameContainer = styled.div<{ hasSidebar: boolean }>`
   min-height: 100vh;
   background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
   display: flex;
@@ -20,7 +20,8 @@ const GameContainer = styled.div`
   justify-content: center;
   padding: 40px 20px;
   position: relative;
-  margin-left: 300px; /* 为左侧sidebar留出空间 */
+  margin-left: ${props => props.hasSidebar ? '300px' : '0'}; /* 动态调整左边距 */
+  transition: margin-left 0.3s ease; /* 平滑过渡 */
 `;
 
 const BackButton = styled(motion.button)`
@@ -35,6 +36,7 @@ const BackButton = styled(motion.button)`
   cursor: pointer;
   transition: all 0.3s ease;
   font-weight: 500;
+  z-index: 100; /* 确保在侧边栏之上 */
   
   &:hover {
     background: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
@@ -764,8 +766,8 @@ export const PinyinMode: React.FC = () => {
 
   return (
     <>
-      {/* 左侧Exercise列表 */}
-      {exerciseList.length > 0 && (
+      {/* 左侧Exercise列表 - 只在游戏开始后显示 */}
+      {gameState.gameStarted && exerciseList.length > 0 && (
         <ExerciseSidebar
           exercises={exerciseList}
           currentExerciseId={gameState.currentExerciseId || ''}
@@ -773,7 +775,7 @@ export const PinyinMode: React.FC = () => {
         />
       )}
       
-      <GameContainer>
+      <GameContainer hasSidebar={gameState.gameStarted && exerciseList.length > 0}>
         <BackButton
           onClick={() => navigate(-1)}
           whileHover={{ scale: 1.05 }}
