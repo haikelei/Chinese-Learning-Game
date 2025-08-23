@@ -3,15 +3,18 @@ import styled from 'styled-components';
 import { motion } from 'framer-motion';
 
 const SidebarContainer = styled.div`
-  width: 300px;
-  background: rgba(255, 255, 255, 0.05);
-  border-right: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 20px;
+  width: 240px;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px;
   overflow-y: auto;
   height: 100vh;
-  position: fixed;
+  position: absolute;
   left: 0;
   top: 0;
+  z-index: 50;
+  box-shadow: 2px 0 20px rgba(0, 0, 0, 0.3);
 `;
 
 const SidebarHeader = styled.div`
@@ -21,45 +24,52 @@ const SidebarHeader = styled.div`
 `;
 
 const SidebarTitle = styled.h2`
-  font-size: 1.5rem;
+  font-size: 1.2rem;
   font-weight: 600;
   color: #e4e4e7;
-  margin: 0 0 8px 0;
+  margin: 0 0 6px 0;
 `;
 
 const SidebarSubtitle = styled.p`
-  font-size: 0.9rem;
+  font-size: 0.8rem;
   color: #a1a1aa;
   margin: 0;
+  opacity: 0.8;
 `;
 
 const ExerciseList = styled.div`
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 10px;
 `;
 
 const ExerciseItem = styled(motion.div)<{ isCurrent: boolean; isCompleted: boolean }>`
   background: ${props => props.isCurrent 
-    ? 'rgba(14, 165, 233, 0.15)' 
+    ? 'rgba(14, 165, 233, 0.12)' 
     : props.isCompleted 
-      ? 'rgba(34, 197, 94, 0.1)' 
-      : 'rgba(255, 255, 255, 0.05)'
+      ? 'rgba(34, 197, 94, 0.08)' 
+      : 'rgba(255, 255, 255, 0.03)'
   };
   border: 1px solid ${props => props.isCurrent 
-    ? 'rgba(14, 165, 233, 0.3)' 
+    ? 'rgba(14, 165, 233, 0.25)' 
     : props.isCompleted 
-      ? 'rgba(34, 197, 94, 0.3)' 
-      : 'rgba(255, 255, 255, 0.1)'
+      ? 'rgba(34, 197, 94, 0.2)' 
+      : 'rgba(255, 255, 255, 0.06)'
   };
-  border-radius: 12px;
-  padding: 16px;
+  border-radius: 8px;
+  padding: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   
   &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    background: ${props => props.isCurrent 
+      ? 'rgba(14, 165, 233, 0.18)' 
+      : props.isCompleted 
+        ? 'rgba(34, 197, 94, 0.12)' 
+        : 'rgba(255, 255, 255, 0.06)'
+    };
   }
 `;
 
@@ -71,7 +81,7 @@ const ExerciseHeader = styled.div`
 `;
 
 const ExerciseTitle = styled.h3<{ isCompleted: boolean }>`
-  font-size: 1rem;
+  font-size: 0.9rem;
   font-weight: 500;
   color: ${props => props.isCompleted ? '#22c55e' : '#e4e4e7'};
   margin: 0;
@@ -85,14 +95,14 @@ const ExerciseStatus = styled.div<{ isCompleted: boolean }>`
 `;
 
 const ProgressContainer = styled.div`
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 `;
 
 const ProgressBar = styled.div`
   width: 100%;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 2px;
   overflow: hidden;
 `;
 
@@ -110,9 +120,10 @@ const ProgressText = styled.div`
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-top: 8px;
-  font-size: 0.8rem;
+  margin-top: 6px;
+  font-size: 0.75rem;
   color: #a1a1aa;
+  opacity: 0.8;
 `;
 
 const SegmentCount = styled.span`

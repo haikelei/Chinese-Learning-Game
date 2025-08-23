@@ -20,14 +20,15 @@ const GameContainer = styled.div<{ hasSidebar: boolean }>`
   justify-content: center;
   padding: 40px 20px;
   position: relative;
-  margin-left: ${props => props.hasSidebar ? '300px' : '0'}; /* 动态调整左边距 */
-  transition: margin-left 0.3s ease; /* 平滑过渡 */
+  /* 侧边栏现在是absolute定位，不占用空间 */
+  width: 100%;
+  transition: all 0.3s ease;
 `;
 
 const BackButton = styled(motion.button)`
   position: absolute;
   top: 30px;
-  left: 30px;
+  left: 260px; /* 与侧边栏右边缘对齐 (240px + 20px) */
   background: linear-gradient(135deg, #3f3f46 0%, #52525b 100%);
   border: 1px solid #52525b;
   border-radius: 12px;
