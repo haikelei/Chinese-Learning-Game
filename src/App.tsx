@@ -34,7 +34,7 @@ function App() {
               
               {/* Dashboard with Sidebar Layout */}
               <Route path="/dashboard" element={<DashboardLayout />}>
-                <Route index element={<DashboardHome />} />
+                <Route index element={<CourseStore />} />
                 <Route path="my-courses" element={<MyCourses />} />
                 <Route path="store" element={<CourseStore />} />
                 <Route path="store/:packageId" element={<CourseStore />} />

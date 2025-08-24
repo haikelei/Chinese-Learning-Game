@@ -14,7 +14,7 @@ import {
   IconButton,
   Badge,
 } from '@chakra-ui/react';
-import { Search, Filter, ArrowLeft, Clock, BookOpen, Users } from 'lucide-react';
+import { Search, Filter, ArrowLeft, BookOpen } from 'lucide-react';
 import { CoursePackage, Course, fetchCoursePackages, fetchCoursesByPackage, fetchCoursePackageDetail, fetchCourseExercises } from '../utils/courseAPI';
 import { CoursePackageCard } from './CoursePackageCard';
 import { CourseCard } from './CourseCard';
@@ -222,19 +222,19 @@ export const CourseStore: React.FC = () => {
   }
 
   return (
-    <Box p="8">
+    <Box p="6" maxW="1400px" mx="auto">
       {view === 'list' ? (
         // 课程包列表视图
         <>
           {/* 页面标题 */}
-          <VStack align="start" gap="6" mb="8">
-            <Heading size="lg" color="white">
+          <VStack align="start" gap="8" mb="12">
+            <Heading size="xl" color="white" fontWeight="700">
               课程包商城
             </Heading>
 
             {/* 搜索框 */}
-            <HStack gap="4" width="100%" maxW="600px">
-              <Box flex="1" position="relative">
+            <Box width="100%" maxW="500px">
+              <Box position="relative">
                 <Input
                   placeholder="搜索课程包..."
                   value={searchQuery}
@@ -245,28 +245,66 @@ export const CourseStore: React.FC = () => {
                   color="white"
                   _placeholder={{ color: 'gray.400' }}
                   pr="12"
+                  pl="12"
+                  py="4"
+                  fontSize="md"
+                  borderRadius="xl"
+                  borderWidth="2px"
+                  _focus={{
+                    borderColor: 'blue.400',
+                    boxShadow: '0 0 0 1px var(--chakra-colors-blue-400)',
+                    bg: 'gray.700'
+                  }}
+                  _hover={{
+                    borderColor: 'gray.500',
+                    bg: 'gray.700'
+                  }}
                 />
-                <Button
+                {/* 左侧搜索图标提示 */}
+                <Box
                   position="absolute"
-                  right="2"
+                  left="4"
                   top="50%"
                   transform="translateY(-50%)"
-                  size="sm"
-                  colorScheme="blue"
-                  onClick={handleSearch}
+                  color="gray.400"
+                  pointerEvents="none"
                 >
-                  <Search size={16} />
-                </Button>
+                  <Search size={18} />
+                </Box>
+                {/* 右侧可点击搜索按钮 */}
+                <Box
+                  position="absolute"
+                  right="4"
+                  top="50%"
+                  transform="translateY(-50%)"
+                  color="blue.400"
+                  cursor="pointer"
+                  onClick={handleSearch}
+                  _hover={{
+                    color: 'blue.300',
+                    transform: 'translateY(-50%) scale(1.1)'
+                  }}
+                  transition="all 0.2s ease"
+                >
+                  <Search size={18} />
+                </Box>
               </Box>
-            </HStack>
+            </Box>
           </VStack>
 
           {/* 课程包列表 */}
           {coursePackages.length === 0 ? (
-            <Center minH="300px">
-              <VStack gap="4">
-                <Filter size={48} color="gray" />
-                <Text color="gray.400" fontSize="lg">
+            <Center minH="400px">
+              <VStack gap="6">
+                <Box 
+                  bg="rgba(39, 39, 42, 0.6)" 
+                  borderRadius="50%" 
+                  p="8"
+                  border="1px solid rgba(82, 82, 91, 0.3)"
+                >
+                  <Filter size={48} color="#6B7280" />
+                </Box>
+                <Text color="gray.400" fontSize="lg" fontWeight="500">
                   没有找到匹配的课程包
                 </Text>
                 <Text color="gray.500" fontSize="sm">
@@ -275,7 +313,7 @@ export const CourseStore: React.FC = () => {
               </VStack>
             </Center>
           ) : (
-            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap="6">
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap="8">
               {coursePackages.map((coursePackage) => (
                 <CoursePackageCard
                   key={coursePackage.id}
@@ -288,7 +326,7 @@ export const CourseStore: React.FC = () => {
 
           {/* 统计信息 */}
           {coursePackages.length > 0 && (
-            <Box mt="8" pt="6" borderTop="1px" borderColor="gray.700">
+            <Box mt="12" pt="8" borderTop="1px" borderColor="gray.700">
               <Text color="gray.400" fontSize="sm" textAlign="center">
                 共找到 {coursePackages.length} 个课程包
               </Text>
@@ -299,54 +337,57 @@ export const CourseStore: React.FC = () => {
         // 课程包详情视图
         <>
           {/* 返回按钮和课程包信息 */}
-          <VStack align="start" gap="6" mb="8">
+          <VStack align="start" gap="8" mb="10" maxW="1200px">
             <HStack gap="4">
               <IconButton
                 onClick={handleBackToList}
                 variant="ghost"
-                size="sm"
+                size="lg"
+                color="gray.400"
+                _hover={{
+                  bg: 'gray.800',
+                  color: 'white'
+                }}
+                borderRadius="lg"
               >
                 <ArrowLeft size={20} />
               </IconButton>
-              <Heading size="lg" color="white">
+              <Heading size="xl" color="white" fontWeight="700">
                 {selectedPackage?.title}
               </Heading>
             </HStack>
 
             {/* 课程包详细信息 */}
             {selectedPackage && (
-              <Box bg="gray.800" p="6" borderRadius="lg" width="100%">
-                <VStack align="start" gap="4">
-                  <Text color="gray.300" fontSize="md">
+              <Box bg="gray.800" p="8" borderRadius="xl" width="100%" border="1px" borderColor="gray.700">
+                <VStack align="start" gap="6">
+                  <Text color="gray.300" fontSize="lg" lineHeight="1.7">
                     {selectedPackage.description}
                   </Text>
                   
-                  {/* 统计信息 */}
-                  <HStack gap="8" fontSize="sm" color="gray.400">
+                  {/* 课程数量信息 */}
+                  <HStack gap="6" fontSize="md" color="gray.400">
                     <HStack gap="2">
-                      <Clock size={16} />
-                      <Text>{selectedPackage.estimatedHours} 小时</Text>
-                    </HStack>
-                    <HStack gap="2">
-                      <BookOpen size={16} />
-                      <Text>{selectedPackage.coursesCount || selectedPackage._count?.courses || 0} 课程</Text>
-                    </HStack>
-                    <HStack gap="2">
-                      <Users size={16} />
-                      <Text>练习</Text>
+                      <BookOpen size={18} />
+                      <Text fontWeight="500">
+                        {selectedPackage.coursesCount || selectedPackage._count?.courses || 0} 课程
+                      </Text>
                     </HStack>
                   </HStack>
 
-                  {/* 标签和分类 */}
-                  <HStack gap="2" flexWrap="wrap">
-                    <Badge colorPalette="purple" variant="subtle">
+                  {/* 分类标签 */}
+                  <HStack gap="3" flexWrap="wrap">
+                    <Badge 
+                      colorPalette="purple" 
+                      variant="subtle" 
+                      size="md"
+                      px="4"
+                      py="2"
+                      borderRadius="full"
+                      fontWeight="600"
+                    >
                       {selectedPackage.category}
                     </Badge>
-                    {selectedPackage.tags?.map((tag, index) => (
-                      <Badge key={index} colorPalette="gray" variant="outline" size="sm">
-                        {tag}
-                      </Badge>
-                    ))}
                   </HStack>
                 </VStack>
               </Box>
@@ -374,11 +415,11 @@ export const CourseStore: React.FC = () => {
               </VStack>
             </Center>
           ) : (
-            <>
-              <Heading size="md" color="white" mb="6">
+            <Box maxW="1400px">
+              <Heading size="lg" color="white" mb="8" fontWeight="600">
                 课程列表 ({courses.length})
               </Heading>
-              <SimpleGrid columns={{ base: 1, md: 2 }} gap="4">
+              <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap="6">
                 {courses.map((course) => (
                   <CourseCard
                     key={course.id}
@@ -387,7 +428,7 @@ export const CourseStore: React.FC = () => {
                   />
                 ))}
               </SimpleGrid>
-            </>
+            </Box>
           )}
         </>
       )}

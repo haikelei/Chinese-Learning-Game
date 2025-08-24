@@ -1,7 +1,7 @@
 import React from 'react';
 import { Box, VStack, Button, Text, Icon } from '@chakra-ui/react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Home, BookOpen, ShoppingCart } from 'lucide-react';
+import { BookOpen, ShoppingCart, History } from 'lucide-react';
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -15,19 +15,14 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    label: '主页',
-    path: '/dashboard',
-    icon: Home,
-  },
-  {
-    label: '我的课程包',
-    path: '/dashboard/my-courses',
-    icon: BookOpen,
-  },
-  {
     label: '课程包商城',
     path: '/dashboard/store',
     icon: ShoppingCart,
+  },
+  {
+    label: '历史记录',
+    path: '/dashboard/my-courses',
+    icon: History,
   },
 ];
 

@@ -5,7 +5,6 @@ import {
   Text,
   VStack,
   HStack,
-  Dialog,
 } from '@chakra-ui/react';
 import { Gamepad2, X } from 'lucide-react';
 import { Course } from '../utils/courseAPI';
@@ -23,7 +22,7 @@ export const GameModeModal: React.FC<GameModeModalProps> = ({
   course,
   onSelectMode,
 }) => {
-  if (!course) return null;
+  if (!course || !isOpen) return null;
 
   const handleModeSelect = (mode: 'pinyin' | 'chinese') => {
     onSelectMode(mode, course);
@@ -31,115 +30,167 @@ export const GameModeModal: React.FC<GameModeModalProps> = ({
   };
 
   return (
-    <Dialog.Root open={isOpen} onOpenChange={() => onClose()}>
-      <Dialog.Backdrop bg="blackAlpha.700" />
-      <Dialog.Positioner>
-        <Dialog.Content bg="gray.800" color="white" maxW="md">
-          <Dialog.Header>
-            <HStack justify="space-between" width="100%">
-              <Dialog.Title>选择游戏模式</Dialog.Title>
-              <Dialog.CloseTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                >
-                  <X size={20} />
-                </Button>
-              </Dialog.CloseTrigger>
-            </HStack>
-          </Dialog.Header>
-
-          <Dialog.Body>
-            <VStack gap="6">
-              {/* 课程信息 */}
-              <Box textAlign="center">
-                <Text fontSize="lg" fontWeight="semibold" mb="2">
-                  {course.title}
-                </Text>
-                {course.description && (
-                  <Text color="gray.300" fontSize="sm">
-                    {course.description}
-                  </Text>
-                )}
-              </Box>
-
-              {/* 模式选择按钮 */}
-              <VStack gap="4" width="100%">
-                <Button
-                  size="lg"
-                  width="100%"
-                  height="auto"
-                  py="6"
-                  colorScheme="blue"
-                  variant="outline"
-                  onClick={() => handleModeSelect('pinyin')}
-                  _hover={{
-                    bg: 'blue.600',
-                    borderColor: 'blue.500',
-                  }}
-                >
-                  <VStack gap="2">
-                    <HStack gap="3">
-                      <Gamepad2 size={24} />
-                      <Text fontSize="xl" fontWeight="bold">
-                        拼音模式
-                      </Text>
-                    </HStack>
-                    <Text fontSize="sm" color="gray.300">
-                      听音频后输入拼音
-                    </Text>
-                  </VStack>
-                </Button>
-
-                <Button
-                  size="lg"
-                  width="100%"
-                  height="auto"
-                  py="6"
-                  colorScheme="green"
-                  variant="outline"
-                  onClick={() => handleModeSelect('chinese')}
-                  _hover={{
-                    bg: 'green.600',
-                    borderColor: 'green.500',
-                  }}
-                >
-                  <VStack gap="2">
-                    <HStack gap="3">
-                      <Gamepad2 size={24} />
-                      <Text fontSize="xl" fontWeight="bold">
-                        汉字模式
-                      </Text>
-                    </HStack>
-                    <Text fontSize="sm" color="gray.300">
-                      听音频后输入汉字
-                    </Text>
-                  </VStack>
-                </Button>
-              </VStack>
-
-              {/* 提示信息 */}
-              <Box
-                bg="gray.700"
-                p="4"
-                borderRadius="md"
-                width="100%"
-                textAlign="center"
-              >
-                <Text fontSize="sm" color="gray.300">
-                  💡 选择适合你当前水平的模式开始练习
-                </Text>
-              </Box>
-            </VStack>
-          </Dialog.Body>
-
-          <Dialog.Footer>
-            <Button variant="ghost" onClick={onClose} width="100%">
-              取消
+    <>
+      {/* 背景遮罩 */}
+      <Box
+        position="fixed"
+        top="0"
+        left="0"
+        right="0"
+        bottom="0"
+        bg="blackAlpha.800"
+        zIndex="1400"
+        onClick={onClose}
+      />
+      
+      {/* 弹窗内容 */}
+      <Box
+        position="fixed"
+        top="50%"
+        left="50%"
+        transform="translate(-50%, -50%)"
+        bg="gray.800"
+        color="white"
+        maxW="lg"
+        width="calc(100% - 2rem)"
+        borderRadius="2xl"
+        border="1px solid"
+        borderColor="gray.700"
+        shadow="2xl"
+        overflow="hidden"
+        zIndex="1401"
+      >
+        {/* 顶部装饰条 */}
+        <Box
+          position="absolute"
+          top="0"
+          left="0"
+          right="0"
+          height="4px"
+          bg="linear-gradient(90deg, #3B82F6, #8B5CF6)"
+          zIndex="1"
+        />
+        
+        {/* 头部 */}
+        <Box p="6" pb="4" position="relative">
+          <HStack justify="space-between" width="100%">
+            <Text fontSize="xl" fontWeight="700" color="white">
+              选择游戏模式
+            </Text>
+            <Button
+              variant="ghost"
+              size="sm"
+              color="gray.400"
+              _hover={{
+                bg: 'gray.700',
+                color: 'white'
+              }}
+              borderRadius="full"
+              p="2"
+              onClick={onClose}
+            >
+              <X size={18} />
             </Button>
-          </Dialog.Footer>
-        </Dialog.Content>
-      </Dialog.Positioner>
-    </Dialog.Root>
+          </HStack>
+        </Box>
+
+        {/* 内容区域 */}
+        <Box px="6" pb="6">
+          <VStack gap="4" width="100%">
+            {/* 拼音模式卡片 */}
+            <Button
+              size="lg"
+              width="100%"
+              height="auto"
+              py="6"
+              px="6"
+              colorScheme="blue"
+              variant="outline"
+              onClick={() => handleModeSelect('pinyin')}
+              borderRadius="xl"
+              borderWidth="2px"
+              borderColor="blue.500"
+              bg="rgba(59, 130, 246, 0.1)"
+              _hover={{
+                bg: 'rgba(59, 130, 246, 0.2)',
+                borderColor: 'blue.400',
+                transform: 'translateY(-2px)',
+                shadow: 'lg'
+              }}
+              _active={{
+                transform: 'translateY(0)'
+              }}
+              transition="all 0.2s ease"
+            >
+              <HStack gap="4" width="100%" justify="center">
+                <Box 
+                  bg="blue.500" 
+                  p="3" 
+                  borderRadius="full"
+                  color="white"
+                  shadow="md"
+                >
+                  <Gamepad2 size={24} />
+                </Box>
+                <VStack align="start" gap="1">
+                  <Text fontSize="lg" fontWeight="700" color="blue.400">
+                    拼音模式
+                  </Text>
+                  <Text fontSize="sm" color="gray.300">
+                    听音频后输入拼音
+                  </Text>
+                </VStack>
+              </HStack>
+            </Button>
+
+            {/* 汉字模式卡片 */}
+            <Button
+              size="lg"
+              width="100%"
+              height="auto"
+              py="6"
+              px="6"
+              colorScheme="green"
+              variant="outline"
+              onClick={() => handleModeSelect('chinese')}
+              borderRadius="xl"
+              borderWidth="2px"
+              borderColor="green.500"
+              bg="rgba(34, 197, 94, 0.1)"
+              _hover={{
+                bg: 'rgba(34, 197, 94, 0.2)',
+                borderColor: 'green.400',
+                transform: 'translateY(-2px)',
+                shadow: 'lg'
+              }}
+              _active={{
+                transform: 'translateY(0)'
+              }}
+              transition="all 0.2s ease"
+            >
+              <HStack gap="4" width="100%" justify="center">
+                <Box 
+                  bg="green.500" 
+                  p="3" 
+                  borderRadius="full"
+                  color="white"
+                  shadow="md"
+                >
+                  <Gamepad2 size={24} />
+                </Box>
+                <VStack align="start" gap="1">
+                  <Text fontSize="lg" fontWeight="700" color="green.400">
+                    汉字模式
+                  </Text>
+                  <Text fontSize="sm" color="gray.300">
+                    听音频后输入汉字
+                  </Text>
+                </VStack>
+              </HStack>
+            </Button>
+          </VStack>
+        </Box>
+      </Box>
+    </>
   );
 };

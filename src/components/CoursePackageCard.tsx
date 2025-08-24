@@ -1,6 +1,6 @@
 import React from 'react';
-import { Card, Heading, Text, Badge, HStack, VStack, Image } from '@chakra-ui/react';
-import { Clock, BookOpen, Users } from 'lucide-react';
+import { Card, Heading, Text, Badge, HStack, VStack, Image, Box } from '@chakra-ui/react';
+import { BookOpen } from 'lucide-react';
 import { CoursePackage } from '../utils/courseAPI';
 
 interface CoursePackageCardProps {
@@ -39,97 +39,89 @@ export const CoursePackageCard: React.FC<CoursePackageCardProps> = ({ coursePack
       borderColor="gray.700"
       borderWidth="1px"
       cursor="pointer"
-      transition="all 0.2s"
+      transition="all 0.3s ease"
+      borderRadius="xl"
+      overflow="hidden"
       _hover={{
-        borderColor: 'blue.500',
-        transform: 'translateY(-2px)',
-        shadow: 'xl',
+        borderColor: 'blue.400',
+        transform: 'translateY(-4px)',
+        shadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+        bg: 'gray.750'
       }}
       onClick={() => onClick(coursePackage)}
     >
-      <Card.Body gap="6">
+      <Card.Body p="0">
         {/* 课程包图片 */}
         {coursePackage.coverImageUrl && (
-          <Image
-            src={coursePackage.coverImageUrl}
-            alt={coursePackage.title}
-            borderRadius="md"
-            height="160px"
-            width="100%"
-            objectFit="cover"
-          />
-        )}
-
-        {/* 标题和描述 */}
-        <VStack align="start" gap="3">
-          <HStack justify="space-between" width="100%">
-            <Heading size="md" color="white" lineClamp="2">
-              {coursePackage.title}
-            </Heading>
-            <Badge colorPalette={getDifficultyColor(coursePackage.difficultyLevel)} size="xs">
+          <Box position="relative">
+            <Image
+              src={coursePackage.coverImageUrl}
+              alt={coursePackage.title}
+              height="200px"
+              width="100%"
+              objectFit="cover"
+            />
+            {/* 难度标签覆盖在图片上 */}
+            <Badge
+              position="absolute"
+              top="4"
+              right="4"
+              colorPalette={getDifficultyColor(coursePackage.difficultyLevel)}
+              size="sm"
+              borderRadius="full"
+              px="3"
+              py="1"
+              fontWeight="600"
+              textTransform="uppercase"
+              letterSpacing="wide"
+              shadow="lg"
+            >
               {getDifficultyText(coursePackage.difficultyLevel)}
             </Badge>
-          </HStack>
-
-          <Text color="gray.300" fontSize="sm" lineClamp="2">
-            {coursePackage.description}
-          </Text>
-
-          {/* 分类标签 */}
-          <Badge colorPalette="purple" variant="subtle" size="xs">
-            {coursePackage.category}
-          </Badge>
-        </VStack>
-
-        {/* 统计信息 */}
-        <VStack gap="2">
-          <HStack justify="space-between" width="100%" fontSize="sm" color="gray.400">
-            <HStack gap="1">
-              <Clock size={16} />
-              <Text>{coursePackage.estimatedHours} 小时</Text>
-            </HStack>
-            <HStack gap="1">
-              <BookOpen size={16} />
-              <Text>{coursePackage.coursesCount || coursePackage._count?.courses || 0} 课程</Text>
-            </HStack>
-            <HStack gap="1">
-              <Users size={16} />
-              <Text>练习</Text>
-            </HStack>
-          </HStack>
-        </VStack>
-
-        {/* 标签 */}
-        {coursePackage.tags && coursePackage.tags.length > 0 && (
-          <HStack gap="2" flexWrap="wrap">
-            {coursePackage.tags.slice(0, 3).map((tag, index) => (
-              <Badge key={index} colorPalette="gray" variant="outline" size="xs">
-                {tag}
-              </Badge>
-            ))}
-            {coursePackage.tags.length > 3 && (
-              <Badge colorPalette="gray" variant="outline" size="xs">
-                +{coursePackage.tags.length - 3}
-              </Badge>
-            )}
-          </HStack>
+          </Box>
         )}
 
-        {/* 价格信息 */}
-        <HStack justify="space-between" align="center">
-          <VStack align="start" gap="0">
+        {/* 内容区域 */}
+        <Box p="6">
+          {/* 标题和描述 */}
+          <VStack align="start" gap="4" mb="6">
+            <Heading size="md" color="white" lineClamp="2" fontWeight="600">
+              {coursePackage.title}
+            </Heading>
+
+            <Text color="gray.300" fontSize="sm" lineClamp="3" lineHeight="1.6">
+              {coursePackage.description}
+            </Text>
+
+            {/* 分类标签 */}
+            <Badge 
+              colorPalette="purple" 
+              variant="subtle" 
+              size="sm"
+              px="3"
+              py="1"
+              borderRadius="full"
+              fontWeight="500"
+            >
+              {coursePackage.category}
+            </Badge>
+          </VStack>
+
+          {/* 课程数量信息 */}
+          <HStack justify="space-between" align="center" pt="4" borderTop="1px" borderColor="gray.700">
+            <HStack gap="2" color="gray.400" fontSize="sm">
+              <BookOpen size={16} />
+              <Text fontWeight="500">
+                {coursePackage.coursesCount || coursePackage._count?.courses || 0} 课程
+              </Text>
+            </HStack>
+            
+            {/* 价格信息 */}
             <Text color="green.400" fontWeight="bold" fontSize="lg">
               {formatPrice(coursePackage.price)}
             </Text>
-            {/* 暂时隐藏原价显示，因为新接口没有 originalPrice 字段 */}
-          </VStack>
-          
-          {coursePackage.price === 0 && (
-            <Badge colorPalette="green" variant="solid">
-              免费体验
-            </Badge>
-          )}
-        </HStack>
+          </HStack>
+        </Box>
       </Card.Body>
     </Card.Root>
   );

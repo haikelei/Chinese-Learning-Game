@@ -164,98 +164,121 @@ export const MyCourses: React.FC = () => {
   }
 
       return (
-      <Box p="8">
-
-
-
-      {/* 课程包列表 */}
-      {coursePackages.length > 0 ? (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <VStack gap="6" align="start" width="100%">
-            <HStack gap="3">
-              <BookOpen size={20} color="#60A5FA" />
-              <Text color="white" fontSize="lg" fontWeight="500">
-                最近学习
-              </Text>
-              <Badge colorPalette="blue" variant="subtle">
-                {coursePackages.length} 个课程包
-              </Badge>
-            </HStack>
-            
-            <SimpleGrid 
-              columns={{ base: 1, md: 2, lg: 3 }} 
-              gap="6" 
-              width="100%"
+        <Box p="6" maxW="1400px" mx="auto">
+          {/* 课程包列表 */}
+          {coursePackages.length > 0 ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
             >
-              {coursePackages.map((coursePackage, index) => (
-                <motion.div
-                  key={coursePackage.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 * index }}
+              <VStack gap="8" align="start" width="100%" mb="8">
+                <HStack gap="4">
+                  <Box 
+                    bg="blue.500" 
+                    p="3" 
+                    borderRadius="full"
+                    color="white"
+                    shadow="lg"
+                  >
+                    <BookOpen size={24} />
+                  </Box>
+                  <VStack align="start" gap="1">
+                    <Text color="white" fontSize="2xl" fontWeight="700">
+                      历史记录
+                    </Text>
+                    <Text color="gray.400" fontSize="sm">
+                      继续你未完成的学习之旅
+                    </Text>
+                  </VStack>
+                  <Badge 
+                    colorPalette="blue" 
+                    variant="subtle"
+                    size="lg"
+                    px="4"
+                    py="2"
+                    borderRadius="full"
+                    fontWeight="600"
+                  >
+                    {coursePackages.length} 个课程包
+                  </Badge>
+                </HStack>
+                
+                <SimpleGrid 
+                  columns={{ base: 1, md: 2, lg: 3 }} 
+                  gap="8" 
+                  width="100%"
                 >
-                  <UserCoursePackageCard
-                    coursePackage={coursePackage}
-                    onClick={handlePackageClick}
-                  />
-                </motion.div>
-              ))}
-            </SimpleGrid>
-          </VStack>
-        </motion.div>
-      ) : (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5, delay: 0.4 }}
-        >
-          <Center minH="400px">
-            <VStack gap="6" textAlign="center">
-              <Box 
-                bg="rgba(39, 39, 42, 0.6)" 
-                borderRadius="50%" 
-                p="8"
-                border="1px solid rgba(82, 82, 91, 0.3)"
-              >
-                <BookOpen size={48} color="#6B7280" />
-              </Box>
-              
-              <VStack gap="3">
-                <Text color="gray.400" fontSize="lg" fontWeight="500">
-                  还没有开始学习
-                </Text>
-                <Text color="gray.500" fontSize="sm">
-                  去课程商店选择你感兴趣的课程包开始学习吧！
-                </Text>
+                  {coursePackages.map((coursePackage, index) => (
+                    <motion.div
+                      key={coursePackage.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: 0.1 * index }}
+                    >
+                      <UserCoursePackageCard
+                        coursePackage={coursePackage}
+                        onClick={handlePackageClick}
+                      />
+                    </motion.div>
+                  ))}
+                </SimpleGrid>
               </VStack>
-              
-              <Box
-                as="button"
-                bg="blue.500"
-                color="white"
-                px="6"
-                py="3"
-                borderRadius="8px"
-                fontSize="sm"
-                fontWeight="500"
-                cursor="pointer"
-                transition="all 0.2s"
-                _hover={{
-                  bg: 'blue.600',
-                  transform: 'translateY(-1px)'
-                }}
-                onClick={() => navigate('/dashboard/store')}
-              >
-                浏览课程包
-              </Box>
-            </VStack>
-          </Center>
-        </motion.div>
-      )}
-    </Box>
-  );
+            </motion.div>
+          ) : (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+            >
+              <Center minH="500px">
+                <VStack gap="8" textAlign="center">
+                  <Box 
+                    bg="rgba(39, 39, 42, 0.6)" 
+                    borderRadius="50%" 
+                    p="12"
+                    border="1px solid rgba(82, 82, 91, 0.3)"
+                    shadow="xl"
+                  >
+                    <BookOpen size={64} color="#6B7280" />
+                  </Box>
+                  
+                  <VStack gap="4">
+                    <Text color="gray.400" fontSize="xl" fontWeight="600">
+                      还没有开始学习
+                    </Text>
+                    <Text color="gray.500" fontSize="md" maxW="400px" lineHeight="1.6">
+                      去课程商店选择你感兴趣的课程包开始学习吧！
+                    </Text>
+                  </VStack>
+                  
+                  <Box
+                    as="button"
+                    bg="blue.500"
+                    color="white"
+                    px="8"
+                    py="4"
+                    borderRadius="xl"
+                    fontSize="md"
+                    fontWeight="600"
+                    cursor="pointer"
+                    transition="all 0.2s"
+                    _hover={{
+                      bg: 'blue.600',
+                      transform: 'translateY(-2px)',
+                      shadow: 'lg'
+                    }}
+                    _active={{
+                      transform: 'translateY(0)'
+                    }}
+                    onClick={() => navigate('/dashboard/store')}
+                  >
+                    去课程商店
+                  </Box>
+                </VStack>
+              </Center>
+            </motion.div>
+          )}
+        </Box>
+      );
 };

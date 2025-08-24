@@ -1,22 +1,7 @@
 import React from 'react';
 import { Card, Heading, Text, Badge, HStack, VStack, Image, Box } from '@chakra-ui/react';
-import { Clock, BookOpen, TrendingUp } from 'lucide-react';
+import { Clock, BookOpen, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
-import styled from 'styled-components';
-
-const StyledCard = styled(Card.Root)`
-  background: rgba(39, 39, 42, 0.8);
-  border: 1px solid rgba(82, 82, 91, 0.3);
-  border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  
-  &:hover {
-    border-color: rgba(14, 165, 233, 0.5);
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-  }
-`;
 
 interface UserCoursePackage {
   id: string;
@@ -88,88 +73,148 @@ export const UserCoursePackageCard: React.FC<UserCoursePackageCardProps> = ({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3 }}
     >
-      <StyledCard onClick={() => onClick(coursePackage)}>
-        <Card.Body gap="4">
+      <Card.Root
+        bg="gray.800"
+        borderColor="gray.700"
+        borderWidth="1px"
+        cursor="pointer"
+        transition="all 0.3s ease"
+        borderRadius="xl"
+        overflow="hidden"
+        _hover={{
+          borderColor: 'blue.400',
+          transform: 'translateY(-4px)',
+          shadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
+          bg: 'gray.750'
+        }}
+        onClick={() => onClick(coursePackage)}
+      >
+        <Card.Body p="0">
           {/* 课程包图片 */}
           {coursePackage.coverImageUrl && (
-            <Image
-              src={coursePackage.coverImageUrl}
-              alt={coursePackage.title}
-              borderRadius="md"
-              height="140px"
-              width="100%"
-              objectFit="cover"
-            />
-          )}
-
-          {/* 标题和难度 */}
-          <VStack align="start" gap="2">
-            <HStack justify="space-between" width="100%">
-              <Heading size="md" color="white" lineClamp="2" fontSize="lg">
-                {coursePackage.title}
-              </Heading>
+            <Box position="relative">
+              <Image
+                src={coursePackage.coverImageUrl}
+                alt={coursePackage.title}
+                height="160px"
+                width="100%"
+                objectFit="cover"
+              />
+              {/* 难度标签覆盖在图片上 */}
               {coursePackage.difficultyLevel && (
-                <Badge colorPalette={getDifficultyColor(coursePackage.difficultyLevel)} size="xs">
+                <Badge
+                  position="absolute"
+                  top="4"
+                  right="4"
+                  colorPalette={getDifficultyColor(coursePackage.difficultyLevel)}
+                  size="sm"
+                  borderRadius="full"
+                  px="3"
+                  py="1"
+                  fontWeight="600"
+                  textTransform="uppercase"
+                  letterSpacing="wide"
+                  shadow="lg"
+                >
                   {getDifficultyText(coursePackage.difficultyLevel)}
                 </Badge>
               )}
-            </HStack>
-
-            {coursePackage.description && (
-              <Text color="gray.300" fontSize="sm" lineClamp="2">
-                {coursePackage.description}
-              </Text>
-            )}
-          </VStack>
-
-          {/* 学习进度 */}
-          <VStack gap="3" align="start" width="100%">
-            <HStack justify="space-between" width="100%">
-              <Text color="gray.300" fontSize="sm" fontWeight="500">
-                学习进度
-              </Text>
-              <Text color="blue.400" fontSize="sm" fontWeight="600">
-                {coursePackage.totalProgress}%
-              </Text>
-            </HStack>
-            
-            <Box
-              width="100%"
-              height="6px"
-              borderRadius="3px"
-              bg="rgba(255, 255, 255, 0.1)"
-              overflow="hidden"
-            >
+              {/* 进度标签覆盖在图片上 */}
               <Box
-                width={`${coursePackage.totalProgress}%`}
-                height="100%"
-                bg="blue.400"
-                borderRadius="3px"
-                transition="width 0.3s ease"
-              />
+                position="absolute"
+                bottom="4"
+                left="4"
+                bg="rgba(0, 0, 0, 0.8)"
+                color="white"
+                px="3"
+                py="1"
+                borderRadius="full"
+                fontSize="sm"
+                fontWeight="600"
+                backdropFilter="blur(10px)"
+              >
+                {coursePackage.totalProgress}% 完成
+              </Box>
             </Box>
-          </VStack>
+          )}
 
-          {/* 统计信息 */}
-          <VStack gap="2" width="100%">
-            <HStack justify="space-between" width="100%" fontSize="sm" color="gray.400">
-              <HStack gap="1">
-                <BookOpen size={14} />
-                <Text>{coursePackage.courses.length} 课程</Text>
+          {/* 内容区域 */}
+          <Box p="6">
+            {/* 标题和描述 */}
+            <VStack align="start" gap="3" mb="5">
+              <Heading size="md" color="white" lineClamp="2" fontWeight="600">
+                {coursePackage.title}
+              </Heading>
+              {coursePackage.description && (
+                <Text color="gray.300" fontSize="sm" lineClamp="2" lineHeight="1.6">
+                  {coursePackage.description}
+                </Text>
+              )}
+            </VStack>
+
+            {/* 学习进度条 */}
+            <VStack gap="3" align="start" width="100%" mb="5">
+              <HStack justify="space-between" width="100%">
+                <Text color="gray.400" fontSize="sm" fontWeight="500">
+                  学习进度
+                </Text>
+                <Text color="blue.400" fontSize="sm" fontWeight="600">
+                  {coursePackage.totalProgress}%
+                </Text>
               </HStack>
-              <HStack gap="1">
-                <Clock size={14} />
-                <Text>{formatLastAccessed(coursePackage.lastAccessedAt)}</Text>
+              
+              <Box width="100%">
+                <Box
+                  height="8px"
+                  borderRadius="full"
+                  bg="gray.700"
+                  overflow="hidden"
+                >
+                  <Box
+                    height="100%"
+                    borderRadius="full"
+                    bg="linear-gradient(90deg, #3B82F6, #1D4ED8)"
+                    width={`${coursePackage.totalProgress}%`}
+                  />
+                </Box>
+              </Box>
+            </VStack>
+
+            {/* 统计信息和操作 */}
+            <HStack justify="space-between" align="center" pt="4" borderTop="1px" borderColor="gray.700">
+              <HStack gap="4" color="gray.400" fontSize="sm">
+                <HStack gap="2">
+                  <BookOpen size={16} />
+                  <Text fontWeight="500">
+                    {coursePackage.courses.length} 课程
+                  </Text>
+                </HStack>
+                <HStack gap="2">
+                  <Clock size={16} />
+                  <Text fontWeight="500">
+                    {formatLastAccessed(coursePackage.lastAccessedAt)}
+                  </Text>
+                </HStack>
               </HStack>
+              
+              {/* 继续学习按钮 */}
+              <Box
+                bg="blue.500"
+                color="white"
+                p="2"
+                borderRadius="full"
+                _hover={{
+                  bg: 'blue.400',
+                  transform: 'scale(1.1)'
+                }}
+                transition="all 0.2s ease"
+              >
+                <Play size={16} />
+              </Box>
             </HStack>
-            
-            <HStack gap="1" color="green.400" fontSize="xs">
-              <TrendingUp size={12} />
-              <Text>继续学习</Text>
-            </HStack>
-          </VStack>
+          </Box>
         </Card.Body>
-      </StyledCard>
+      </Card.Root>
     </motion.div>
   );
 };
