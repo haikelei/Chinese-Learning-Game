@@ -160,6 +160,7 @@ export const InputSystem: React.FC<InputSystemProps> = ({
   const [syllableInputs, setSyllableInputs] = useState<string[]>([]);
   const [errorSyllables, setErrorSyllables] = useState<Set<number>>(new Set());
   const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [currentSyllableIndex, setCurrentSyllableIndex] = useState(0); // 添加当前音节索引状态
   const hiddenInputRef = useRef<HTMLInputElement>(null);
   
   // 创建显示元素（拼音音节 + 标点符号）
@@ -182,6 +183,7 @@ export const InputSystem: React.FC<InputSystemProps> = ({
     // 初始化音节输入数组 - 只在题目变化时重置
     setSyllableInputs(new Array(syllables.length).fill(''));
     setCurrentInput('');
+    setCurrentSyllableIndex(0); // 重置当前音节索引
     
     // 自动聚焦到输入框，确保用户可以直接输入
     if (hiddenInputRef.current) {
@@ -221,12 +223,17 @@ export const InputSystem: React.FC<InputSystemProps> = ({
       const newChar = value[value.length - 1];
       if (newChar === ' ') {
         typewriterSound.playSpacebar();
+        // 输入空格后，移动到下一个音节
+        setCurrentSyllableIndex(prev => Math.min(prev + 1, syllables.length - 1));
       } else {
         typewriterSound.playKeystroke();
       }
     } else if (value.length < previousValue.length) {
       // 删除字符 - 播放删除音效
       typewriterSound.playBackspace();
+      // 删除字符时，可能需要回退到前一个音节
+      const inputSyllables = value.split(' ');
+      setCurrentSyllableIndex(Math.min(inputSyllables.length - 1, syllables.length - 1));
     }
     
     setCurrentInput(value);
@@ -248,7 +255,7 @@ export const InputSystem: React.FC<InputSystemProps> = ({
     }
     
     setSyllableInputs(newSyllableInputs);
-  }, [currentInput, syllableInputs]);
+  }, [currentInput, syllableInputs, syllables.length]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !disabled) {
@@ -360,15 +367,16 @@ export const InputSystem: React.FC<InputSystemProps> = ({
             const width = calculateWidth(element.content);
             const isError = errorSyllables.has(syllableIndex);
             const currentSyllableInput = syllableInputs[syllableIndex] || '';
+            const isActive = syllableIndex === currentSyllableIndex; // 判断当前横线是否活跃
             
             return (
               <LineContainer key={`syllable-${elementIndex}`}>
-                <InputText isActive={false}>
+                <InputText isActive={isActive}>
                   {currentSyllableInput}
                 </InputText>
                 <InputLine
                   width={width}
-                  isActive={false}
+                  isActive={isActive}
                   isError={isError}
                   animate={isError ? {
                     x: [-5, 5, -5, 5, 0],
