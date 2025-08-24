@@ -75,7 +75,7 @@ export const GameModeModal: React.FC<GameModeModalProps> = ({
         <Box p="6" pb="4" position="relative">
           <HStack justify="space-between" width="100%">
             <Text fontSize="xl" fontWeight="700" color="white">
-              选择游戏模式
+              Select Game Mode
             </Text>
             <Button
               variant="ghost"
@@ -134,10 +134,10 @@ export const GameModeModal: React.FC<GameModeModalProps> = ({
                 </Box>
                 <VStack align="start" gap="1">
                   <Text fontSize="lg" fontWeight="700" color="blue.400">
-                    拼音模式
+                    Pinyin Mode
                   </Text>
                   <Text fontSize="sm" color="gray.300">
-                    听音频后输入拼音
+                    Listen to audio and input pinyin
                   </Text>
                 </VStack>
               </HStack>
@@ -180,10 +180,10 @@ export const GameModeModal: React.FC<GameModeModalProps> = ({
                 </Box>
                 <VStack align="start" gap="1">
                   <Text fontSize="lg" fontWeight="700" color="green.400">
-                    汉字模式
+                    Chinese Mode
                   </Text>
                   <Text fontSize="sm" color="gray.300">
-                    听音频后输入汉字
+                    Listen to audio and input Chinese characters
                   </Text>
                 </VStack>
               </HStack>

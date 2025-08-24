@@ -143,7 +143,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, onClick }) => {
               transition="all 0.2s ease"
             >
               <Play size={16} style={{ marginRight: '8px' }} />
-              开始学习
+              Start Learning
             </Button>
           )}
 

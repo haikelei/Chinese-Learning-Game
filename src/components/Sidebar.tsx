@@ -15,12 +15,12 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   {
-    label: '课程包商城',
+    label: 'Course Store',
     path: '/dashboard/store',
     icon: ShoppingCart,
   },
   {
-    label: '历史记录',
+    label: 'History',
     path: '/dashboard/my-courses',
     icon: History,
   },

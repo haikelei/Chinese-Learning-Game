@@ -63,7 +63,7 @@ export const CourseStore: React.FC = () => {
       setCoursePackages(response.packages);
     } catch (err) {
       console.error('Failed to load course packages:', err);
-      setError(`网络错误：${err instanceof Error ? err.message : '请稍后重试'}`);
+      setError(`Network error: ${err instanceof Error ? err.message : 'Please try again later'}`);
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ export const CourseStore: React.FC = () => {
       setCourses(result);
     } catch (err) {
       console.error('Failed to load courses:', err);
-      setError(`获取课程失败：${err instanceof Error ? err.message : '请稍后重试'}`);
+      setError(`Failed to get courses: ${err instanceof Error ? err.message : 'Please try again later'}`);
     } finally {
       setCoursesLoading(false);
     }
@@ -109,17 +109,14 @@ export const CourseStore: React.FC = () => {
   // 根据ID加载单个课程包（用于直接URL访问）
   const loadPackageById = async (id: string) => {
     try {
-      setLoading(true);
-      const coursePackage = await fetchCoursePackageDetail(id);
-      setSelectedPackage(coursePackage);
-      await loadCoursesByPackage(coursePackage);
+      const result = await fetchCoursePackageDetail(id);
+      setSelectedPackage(result);
+      loadCoursesByPackage(result);
     } catch (err) {
-      console.error('Failed to load package:', err);
-      setError(`获取课程包失败：${err instanceof Error ? err.message : '请稍后重试'}`);
+      console.error('Failed to load course package:', err);
+      setError(`Failed to get course package: ${err instanceof Error ? err.message : 'Please try again later'}`);
       // 如果加载失败，重定向回列表页
       navigate('/dashboard/store');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -196,12 +193,14 @@ export const CourseStore: React.FC = () => {
 
   if (loading) {
     return (
-      <Center minH="400px">
-        <VStack gap="4">
-          <Spinner size="xl" color="blue.400" />
-          <Text color="gray.400">加载课程包中...</Text>
-        </VStack>
-      </Center>
+      <Box p="8">
+        <Center minH="400px">
+          <VStack gap="4">
+            <Spinner size="xl" color="blue.400" />
+            <Text color="gray.400">Loading course packages...</Text>
+          </VStack>
+        </Center>
+      </Box>
     );
   }
 
@@ -210,10 +209,10 @@ export const CourseStore: React.FC = () => {
       <Box p="8">
         <Box bg="red.900" border="1px solid" borderColor="red.600" p="4" borderRadius="md">
           <VStack align="start" gap="2">
-            <Text color="red.200" fontWeight="bold">加载失败</Text>
+            <Text color="red.200" fontWeight="bold">Loading Failed</Text>
             <Text color="red.300">{error}</Text>
             <Button size="sm" colorScheme="red" variant="outline" onClick={loadCoursePackages}>
-              重试
+              Retry
             </Button>
           </VStack>
         </Box>
@@ -229,14 +228,14 @@ export const CourseStore: React.FC = () => {
           {/* 页面标题 */}
           <VStack align="start" gap="8" mb="12">
             <Heading size="xl" color="white" fontWeight="700">
-              课程包商城
+              Course Store
             </Heading>
 
             {/* 搜索框 */}
             <Box width="100%" maxW="500px">
               <Box position="relative">
                 <Input
-                  placeholder="搜索课程包..."
+                  placeholder="Search course packages..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -305,10 +304,10 @@ export const CourseStore: React.FC = () => {
                   <Filter size={48} color="#6B7280" />
                 </Box>
                 <Text color="gray.400" fontSize="lg" fontWeight="500">
-                  没有找到匹配的课程包
+                  No matching course packages found
                 </Text>
                 <Text color="gray.500" fontSize="sm">
-                  尝试调整搜索关键词
+                  Try adjusting your search keywords
                 </Text>
               </VStack>
             </Center>
@@ -328,7 +327,7 @@ export const CourseStore: React.FC = () => {
           {coursePackages.length > 0 && (
             <Box mt="12" pt="8" borderTop="1px" borderColor="gray.700">
               <Text color="gray.400" fontSize="sm" textAlign="center">
-                共找到 {coursePackages.length} 个课程包
+                Total {coursePackages.length} course packages found
               </Text>
             </Box>
           )}
@@ -370,7 +369,7 @@ export const CourseStore: React.FC = () => {
                     <HStack gap="2">
                       <BookOpen size={18} />
                       <Text fontWeight="500">
-                        {selectedPackage.coursesCount || selectedPackage._count?.courses || 0} 课程
+                        {selectedPackage.coursesCount || selectedPackage._count?.courses || 0} Courses
                       </Text>
                     </HStack>
                   </HStack>
@@ -399,7 +398,7 @@ export const CourseStore: React.FC = () => {
             <Center minH="300px">
               <VStack gap="4">
                 <Spinner size="xl" color="blue.400" />
-                <Text color="gray.400">加载课程中...</Text>
+                <Text color="gray.400">Loading courses...</Text>
               </VStack>
             </Center>
           ) : courses.length === 0 ? (
@@ -407,17 +406,17 @@ export const CourseStore: React.FC = () => {
               <VStack gap="4">
                 <BookOpen size={48} color="gray" />
                 <Text color="gray.400" fontSize="lg">
-                  暂无课程
+                  No courses available
                 </Text>
                 <Text color="gray.500" fontSize="sm">
-                  该课程包还没有添加课程内容
+                  This course package doesn't have any courses yet
                 </Text>
               </VStack>
             </Center>
           ) : (
             <Box maxW="1400px">
               <Heading size="lg" color="white" mb="8" fontWeight="600">
-                课程列表 ({courses.length})
+                Course List ({courses.length})
               </Heading>
               <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap="6">
                 {courses.map((course) => (

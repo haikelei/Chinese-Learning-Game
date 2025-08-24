@@ -47,11 +47,11 @@ export const UserCoursePackageCard: React.FC<UserCoursePackageCardProps> = ({
 
   const getDifficultyText = (level: string) => {
     switch (level) {
-      case 'beginner': return '入门';
-      case 'intermediate': return '中级';
-      case 'advanced': return '高级';
-      case 'expert': return '专家';
-      default: return '未知';
+      case 'beginner': return 'Beginner';
+      case 'intermediate': return 'Intermediate';
+      case 'advanced': return 'Advanced';
+      case 'expert': return 'Expert';
+      default: return 'Unknown';
     }
   };
 
@@ -61,10 +61,10 @@ export const UserCoursePackageCard: React.FC<UserCoursePackageCardProps> = ({
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     
-    if (diffDays === 1) return '昨天';
-    if (diffDays < 7) return `${diffDays}天前`;
-    if (diffDays < 30) return `${Math.floor(diffDays / 7)}周前`;
-    return `${Math.floor(diffDays / 30)}个月前`;
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
+    return `${Math.floor(diffDays / 30)} months ago`;
   };
 
   return (
@@ -133,7 +133,7 @@ export const UserCoursePackageCard: React.FC<UserCoursePackageCardProps> = ({
                 fontWeight="600"
                 backdropFilter="blur(10px)"
               >
-                {coursePackage.totalProgress}% 完成
+                {coursePackage.totalProgress}% Complete
               </Box>
             </Box>
           )}
@@ -156,7 +156,7 @@ export const UserCoursePackageCard: React.FC<UserCoursePackageCardProps> = ({
             <VStack gap="3" align="start" width="100%" mb="5">
               <HStack justify="space-between" width="100%">
                 <Text color="gray.400" fontSize="sm" fontWeight="500">
-                  学习进度
+                  Learning Progress
                 </Text>
                 <Text color="blue.400" fontSize="sm" fontWeight="600">
                   {coursePackage.totalProgress}%
@@ -186,7 +186,7 @@ export const UserCoursePackageCard: React.FC<UserCoursePackageCardProps> = ({
                 <HStack gap="2">
                   <BookOpen size={16} />
                   <Text fontWeight="500">
-                    {coursePackage.courses.length} 课程
+                    {coursePackage.courses.length} Courses
                   </Text>
                 </HStack>
                 <HStack gap="2">

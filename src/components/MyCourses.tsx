@@ -109,7 +109,7 @@ export const MyCourses: React.FC = () => {
       
     } catch (err) {
       console.error('Failed to fetch user courses:', err);
-      setError('获取课程数据失败，请稍后重试');
+      setError('Failed to get course data, please try again later');
     } finally {
       setLoading(false);
     }
@@ -135,8 +135,7 @@ export const MyCourses: React.FC = () => {
       <Box p="8">
         <Center minH="400px">
           <VStack gap="4">
-            <Spinner size="xl" color="blue.400" />
-            <Text color="gray.400">加载中...</Text>
+            <Text color="gray.400">Loading...</Text>
           </VStack>
         </Center>
       </Box>
@@ -155,7 +154,7 @@ export const MyCourses: React.FC = () => {
               onClick={handleRefresh}
               _hover={{ textDecoration: 'underline' }}
             >
-              点击重试
+              Click to retry
             </Text>
           </VStack>
         </Center>
@@ -185,10 +184,10 @@ export const MyCourses: React.FC = () => {
                   </Box>
                   <VStack align="start" gap="1">
                     <Text color="white" fontSize="2xl" fontWeight="700">
-                      历史记录
+                      History
                     </Text>
                     <Text color="gray.400" fontSize="sm">
-                      继续你未完成的学习之旅
+                      Continue your unfinished learning journey
                     </Text>
                   </VStack>
                   <Badge 
@@ -200,7 +199,7 @@ export const MyCourses: React.FC = () => {
                     borderRadius="full"
                     fontWeight="600"
                   >
-                    {coursePackages.length} 个课程包
+                    {coursePackages.length} course packages
                   </Badge>
                 </HStack>
                 
@@ -245,10 +244,10 @@ export const MyCourses: React.FC = () => {
                   
                   <VStack gap="4">
                     <Text color="gray.400" fontSize="xl" fontWeight="600">
-                      还没有开始学习
+                      Haven't started learning yet
                     </Text>
                     <Text color="gray.500" fontSize="md" maxW="400px" lineHeight="1.6">
-                      去课程商店选择你感兴趣的课程包开始学习吧！
+                      Go to the course store to choose course packages that interest you!
                     </Text>
                   </VStack>
                   
@@ -273,7 +272,7 @@ export const MyCourses: React.FC = () => {
                     }}
                     onClick={() => navigate('/dashboard/store')}
                   >
-                    去课程商店
+                    Go to Course Store
                   </Box>
                 </VStack>
               </Center>

@@ -10,6 +10,7 @@ import { ExerciseSidebar } from './ExerciseSidebar';
 import { getAllSegmentsFromCourse, fetchExerciseSegments } from '../utils/courseAPI';
 import { removeTrailingPunctuation } from '../utils/textProcessing';
 import { startPractice, completePractice } from '../utils/segmentAPI';
+import { Box, VStack, Text, HStack } from '@chakra-ui/react'; // Added Chakra UI imports
 
 const GameContainer = styled.div<{ hasSidebar: boolean }>`
   min-height: 100vh;
@@ -148,46 +149,144 @@ interface ExtendedExerciseSegment {
   userProgress?: any;
 }
 
-
+// 定义Phrase接口
+export interface Phrase {
+  content: string;
+  pinyin?: string | string[];
+  pinyinWithoutTones?: string[];
+  translation?: string;
+  id?: string;
+  difficultyLevel?: number;
+  audioUrl?: string;
+}
 
 export interface GameState {
-  currentPhrase: {
-    content: string;
-    pinyin?: string | string[];
-    pinyinWithoutTones?: string[]; // 添加不带声调的拼音字段
-    translation?: string;
-    id?: string;
-    difficultyLevel?: number;
-    audioUrl?: string; // 添加音频URL字段
-  } | null;
+  currentPhrase: Phrase | null;
   userInput: string;
-  isPlaying: boolean;
-  showAnswer: boolean;
-  showPinyinHint: boolean;
-  gameStarted: boolean;
-  currentIndex: number;
+  inputMode: 'pinyin' | 'chinese';
   score: number;
-  totalAttempts: number;
-  correctAttempts: number;
-  inputMode: 'pinyin';
-  // 添加其他缺失的字段
   accuracy: number;
   speed: number;
-  attempts: number;
+  isPlaying: boolean;
   showResult: boolean;
   startTime: number | null;
+  attempts: number;
+  correctAttempts: number;
   showShareCard: boolean;
+  gameStarted: boolean;
+  showAnswer: boolean;
+  showPinyinHint: boolean;
+  currentIndex: number;
+  totalAttempts: number;
+  practiceMode: 'listening' | 'speaking' | 'reading' | 'writing'; // 练习模式
+  
   // 添加segment相关字段
   currentExerciseId?: string; // 当前练习ID
   currentSegmentId?: string;  // 当前segment ID
   segmentStartTime?: number;  // segment开始时间
-  practiceMode: 'listening' | 'speaking' | 'reading' | 'writing'; // 练习模式
+  
+  // 新增：进度恢复相关字段
+  progressInfo?: {
+    completedSegments: number;
+    totalSegments: number;
+    progressPercentage: number;
+    nextSegmentIndex: number;
+    resumeMode: boolean;
+  };
+  resumeMode?: boolean; // 是否为恢复模式
 }
 
 export const PinyinMode: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
+  // 新增：进度指示器组件
+  // TODO: 后续改进 - 以exercise为单位显示进度，而不是以segment为单位
+  // 当前逻辑：8个segments完成2个 = 25%
+  // 改进后：8个exercises完成2个 = 25% (更有意义)
+  const ProgressIndicator = ({ progressInfo, isGameMode = false }: { progressInfo: any; isGameMode?: boolean }) => {
+    if (!progressInfo) return null;
+    
+    if (isGameMode) {
+      // 游戏模式：简化版本，减少UI打扰
+      return (
+        <Box
+          position="fixed"
+          top="20px"
+          right="20px"
+          bg="rgba(0, 0, 0, 0.6)"
+          color="white"
+          p="3"
+          borderRadius="lg"
+          border="1px solid"
+          borderColor="gray.600"
+          backdropFilter="blur(8px)"
+          zIndex="1000"
+          minW="80px"
+        >
+          <HStack gap="2" align="center">
+            <Box width="60px" bg="gray.700" borderRadius="full" h="2">
+              <Box
+                bg="linear-gradient(90deg, #3B82F6, #8B5CF6)"
+                h="100%"
+                borderRadius="full"
+                width={`${progressInfo.progressPercentage}%`}
+                transition="width 0.5s ease"
+              />
+            </Box>
+            <Text fontSize="sm" fontWeight="600" color="white">
+              {progressInfo.completedSegments}/{progressInfo.totalSegments}
+            </Text>
+          </HStack>
+        </Box>
+      );
+    }
+    
+    // 开始页面：完整版本
+    return (
+      <Box
+        position="fixed"
+        top="20px"
+        right="20px"
+        bg="rgba(0, 0, 0, 0.8)"
+        color="white"
+        p="4"
+        borderRadius="lg"
+        border="1px solid"
+        borderColor="gray.600"
+        backdropFilter="blur(10px)"
+        zIndex="1000"
+        maxW="300px"
+      >
+        <VStack gap="2" align="start">
+          <Text fontSize="sm" fontWeight="600" color="blue.300">
+            📚 Learning Progress
+          </Text>
+          <Text fontSize="lg" fontWeight="700">
+            {progressInfo.completedSegments} / {progressInfo.totalSegments}
+          </Text>
+          <Box width="100%" bg="gray.700" borderRadius="full" h="2">
+            <Box
+              bg="linear-gradient(90deg, #3B82F6, #8B5CF6)"
+              h="100%"
+              borderRadius="full"
+              width={`${progressInfo.progressPercentage}%`}
+              transition="width 0.5s ease"
+            />
+          </Box>
+          <Text fontSize="sm" color="gray.300">
+            {progressInfo.progressPercentage.toFixed(1)}% Complete
+          </Text>
+          {progressInfo.resumeMode && (
+            <Text fontSize="xs" color="green.300" fontStyle="italic">
+              ✨ Continue from where you left off
+            </Text>
+          )}
+        </VStack>
+      </Box>
+    );
+  };
+
   // 状态管理
   const [allSegments, setAllSegments] = useState<ExtendedExerciseSegment[]>([]);
   const [exerciseList, setExerciseList] = useState<any[]>([]);
@@ -244,6 +343,85 @@ export const PinyinMode: React.FC = () => {
       isCompleted: completedSegments === totalSegments,
       completedSegments,
       totalSegments
+    };
+  }, []);
+
+  // 新增：分析整体进度，找到第一个未完成的segment
+  const analyzeProgress = useCallback((exercises: any[]) => {
+    let completedSegments = 0;
+    let totalSegments = 0;
+    let firstIncompleteSegment: any = null;
+    let firstIncompleteExercise: any = null;
+    
+    // 遍历所有exercises和segments
+    for (const exercise of exercises) {
+      const segments = exercise.segments || [];
+      totalSegments += segments.length;
+      
+      for (const segment of segments) {
+        if (segment.userProgress?.isCompleted) {
+          completedSegments++;
+        } else if (!firstIncompleteSegment) {
+          // 找到第一个未完成的segment
+          firstIncompleteSegment = segment;
+          firstIncompleteExercise = exercise;
+        }
+      }
+    }
+    
+    const progressPercentage = totalSegments > 0 ? (completedSegments / totalSegments) * 100 : 0;
+    
+    console.log('🔍 进度分析结果:', {
+      completedSegments,
+      totalSegments,
+      progressPercentage: `${progressPercentage.toFixed(1)}%`,
+      firstIncompleteSegment: firstIncompleteSegment ? {
+        id: firstIncompleteSegment.id,
+        content: firstIncompleteSegment.content,
+        exerciseTitle: firstIncompleteExercise?.title
+      } : null
+    });
+    
+    return {
+      completedSegments,
+      totalSegments,
+      progressPercentage,
+      firstIncompleteSegment,
+      firstIncompleteExercise,
+      hasIncompleteSegments: !!firstIncompleteSegment,
+      allCompleted: completedSegments === totalSegments
+    };
+  }, []);
+
+  // 新增：根据进度分析结果智能选择起始segment
+  const selectStartingSegment = useCallback((progressAnalysis: any, processedSegments: any[]) => {
+    if (progressAnalysis.allCompleted) {
+      // 全部完成，从第一个开始（重新学习）
+      console.log('🎉 所有练习已完成，重新开始学习');
+      return {
+        segment: processedSegments[0],
+        mode: 'restart',
+        message: '所有练习已完成，重新开始学习'
+      };
+    } else if (progressAnalysis.firstIncompleteSegment) {
+      // 有未完成的，从第一个未完成的开始
+      const targetSegment = processedSegments.find(s => s.id === progressAnalysis.firstIncompleteSegment.id);
+      if (targetSegment) {
+        console.log('📚 继续学习：', progressAnalysis.firstIncompleteSegment.content);
+        return {
+          segment: targetSegment,
+          mode: 'resume',
+          message: `继续学习：${progressAnalysis.firstIncompleteExercise.title}`
+        };
+      }
+    }
+    
+    // 兜底：从第一个开始
+    console.log('⚠️ 无法确定起始位置，从第一个开始');
+    return {
+      segment: processedSegments[0],
+      mode: 'fallback',
+      message: '开始学习'
     };
   }, []);
 
@@ -385,29 +563,68 @@ export const PinyinMode: React.FC = () => {
         setAllSegments(processedSegments);
         
         if (processedSegments.length > 0) {
-          const firstSegment = processedSegments[0];
+          // 新增：使用进度分析智能选择起始segment
+          let progressAnalysis: any = null;
+          let startingInfo: any = null;
+          
+          if (courseId) {
+            // 在courseId分支中获取response后进行分析
+            const response = await getAllSegmentsFromCourse(courseId);
+            progressAnalysis = analyzeProgress(response.exercises);
+            startingInfo = selectStartingSegment(progressAnalysis, processedSegments);
+          } else {
+            // 兼容旧接口，从第一个开始
+            startingInfo = {
+              segment: processedSegments[0],
+              mode: 'fallback',
+              message: '开始学习'
+            };
+            progressAnalysis = {
+              completedSegments: 0,
+              totalSegments: processedSegments.length,
+              progressPercentage: 0
+            };
+          }
+          
+          console.log('🎯 智能选择起始位置:', startingInfo);
           
           // 设置当前exercise状态
           setExerciseList(prev => prev.map(ex => ({
             ...ex,
-            isCurrent: ex.id === firstSegment.exerciseId
+            isCurrent: ex.id === startingInfo.segment.exerciseId
           })));
           
+          // 更新游戏状态，包含进度信息
           setGameState(prev => ({
             ...prev,
             currentPhrase: {
-              content: firstSegment.content || '',
-              pinyin: firstSegment.pinyin,
-              pinyinWithoutTones: firstSegment.pinyinWithoutTones,
-              translation: firstSegment.translation || '',
-              id: firstSegment.id,
-              difficultyLevel: firstSegment.difficultyLevel,
-              audioUrl: firstSegment.audioUrl || '',
+              content: startingInfo.segment.content || '',
+              pinyin: startingInfo.segment.pinyin,
+              pinyinWithoutTones: startingInfo.segment.pinyinWithoutTones,
+              translation: startingInfo.segment.translation || '',
+              id: startingInfo.segment.id,
+              difficultyLevel: startingInfo.segment.difficultyLevel,
+              audioUrl: startingInfo.segment.audioUrl || '',
             },
-            currentExerciseId: firstSegment.exerciseId,
-            currentSegmentId: firstSegment.id,
+            currentExerciseId: startingInfo.segment.exerciseId,
+            currentSegmentId: startingInfo.segment.id,
             segmentStartTime: Date.now(),
+            // 新增：设置进度信息
+            progressInfo: {
+              completedSegments: progressAnalysis.completedSegments,
+              totalSegments: progressAnalysis.totalSegments,
+              progressPercentage: progressAnalysis.progressPercentage,
+              nextSegmentIndex: progressAnalysis.completedSegments,
+              resumeMode: startingInfo.mode === 'resume'
+            },
+            resumeMode: startingInfo.mode === 'resume'
           }));
+          
+          // 显示进度信息
+          if (startingInfo.mode === 'resume') {
+            console.log(`📚 ${startingInfo.message}`);
+            console.log(`📊 学习进度: ${progressAnalysis.completedSegments}/${progressAnalysis.totalSegments} (${progressAnalysis.progressPercentage.toFixed(1)}%)`);
+          }
         } else {
           setError('没有找到可用的练习数据');
         }
@@ -777,6 +994,11 @@ export const PinyinMode: React.FC = () => {
       )}
       
       <GameContainer hasSidebar={gameState.gameStarted && exerciseList.length > 0}>
+        {/* 新增：进度指示器 - 暂时隐藏，为后续以exercise为单位的进度显示做准备 */}
+        {/* {gameState.progressInfo && (
+          <ProgressIndicator progressInfo={gameState.progressInfo} isGameMode={gameState.gameStarted} />
+        )} */}
+        
         <BackButton
           onClick={() => navigate(-1)}
           whileHover={{ scale: 1.05 }}
@@ -784,7 +1006,7 @@ export const PinyinMode: React.FC = () => {
         >
           ← Back
         </BackButton>
-
+      
       {/* 隐藏模式指示器，界面更简洁
       <ModeIndicator
         initial={{ opacity: 0, x: 20 }}

@@ -21,16 +21,19 @@ export const CoursePackageCard: React.FC<CoursePackageCardProps> = ({ coursePack
 
   const getDifficultyText = (level: string) => {
     switch (level) {
-      case 'beginner': return '入门';
-      case 'intermediate': return '中级';
-      case 'advanced': return '高级';
-      case 'expert': return '专家';
-      default: return '未知';
+      case 'beginner': return 'Beginner';
+      case 'intermediate': return 'Intermediate';
+      case 'advanced': return 'Advanced';
+      case 'expert': return 'Expert';
+      default: return 'Unknown';
     }
   };
 
-  const formatPrice = (price: number) => {
-    return price === 0 ? '免费' : `¥${price}`;
+  const formatPrice = (price: number | null | undefined) => {
+    if (price === null || price === undefined) {
+      return 'Free';
+    }
+    return price === 0 ? 'Free' : `¥${price}`;
   };
 
   return (
@@ -112,7 +115,7 @@ export const CoursePackageCard: React.FC<CoursePackageCardProps> = ({ coursePack
             <HStack gap="2" color="gray.400" fontSize="sm">
               <BookOpen size={16} />
               <Text fontWeight="500">
-                {coursePackage.coursesCount || coursePackage._count?.courses || 0} 课程
+                {coursePackage.coursesCount || coursePackage._count?.courses || 0} Courses
               </Text>
             </HStack>
             
