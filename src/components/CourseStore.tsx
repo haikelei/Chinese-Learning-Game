@@ -14,11 +14,32 @@ import {
   IconButton,
   Badge,
 } from '@chakra-ui/react';
-import { Search, Filter, ArrowLeft, BookOpen } from 'lucide-react';
-import { CoursePackage, Course, fetchCoursePackages, fetchCoursesByPackage, fetchCoursePackageDetail, fetchCourseExercises } from '../utils/courseAPI';
+import { Search, Filter, ArrowLeft, BookOpen, Target, Clock } from 'lucide-react';
+import { CoursePackage, Course, fetchCoursePackages, fetchCoursesByPackage, fetchCoursePackageDetail, fetchUserPackageDetail } from '../utils/courseAPI';
 import { CoursePackageCard } from './CoursePackageCard';
 import { CourseCard } from './CourseCard';
-import { GameModeModal } from './GameModeModal';
+
+// 用户进度接口
+interface UserPackageProgress {
+  packageId: string;
+  totalCourses: number;
+  completedCourses: number;
+  progressPercentage: number;
+  lastAccessedAt?: string;
+  totalTimeSpent?: number;
+  courses?: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    estimatedMinutes?: number;
+    orderIndex: number;
+    progressPercentage: number;
+    isCompleted: boolean;
+    lastStudiedAt?: string;
+    totalExercises: number;
+    correctExercises: number;
+  }>;
+}
 
 export const CourseStore: React.FC = () => {
   const navigate = useNavigate();
@@ -33,12 +54,46 @@ export const CourseStore: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [coursesLoading, setCoursesLoading] = useState(false);
   
+  // 用户进度状态
+  const [userProgress, setUserProgress] = useState<UserPackageProgress | null>(null);
+  
   // 根据URL参数确定当前视图
   const view = packageId ? 'detail' : 'list';
-  
-  // 游戏模式弹窗状态
-  const [showModeModal, setShowModeModal] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+
+  // 获取用户课程包进度
+  const fetchUserPackageProgress = useCallback(async (packageId: string) => {
+    try {
+      const packageDetail = await fetchUserPackageDetail(packageId);
+      
+      // 转换数据格式
+      const totalCourses = packageDetail.courses.length;
+      const completedCourses = packageDetail.courses.filter(course => course.isCompleted).length;
+      const lastAccessedAt = packageDetail.courses
+        .filter(course => course.lastStudiedAt)
+        .sort((a, b) => new Date(b.lastStudiedAt!).getTime() - new Date(a.lastStudiedAt!).getTime())[0]?.lastStudiedAt;
+      
+      const userProgressData: UserPackageProgress = {
+        packageId,
+        totalCourses,
+        completedCourses,
+        progressPercentage: packageDetail.overallProgress,
+        lastAccessedAt,
+        totalTimeSpent: undefined, // 这个字段在API中没有，暂时设为undefined
+        courses: packageDetail.courses // 保存课程级别的进度信息
+      };
+      
+      console.log('User package progress loaded:', userProgressData);
+      console.log('API response:', packageDetail);
+      console.log('API courses data:', packageDetail.courses);
+      console.log('First course details:', packageDetail.courses[0]);
+      
+
+      setUserProgress(userProgressData);
+    } catch (err) {
+      console.error('Failed to fetch user progress:', err);
+      setUserProgress(null);
+    }
+  }, []);
 
   // 加载课程包数据
   const loadCoursePackages = useCallback(async () => {
@@ -81,6 +136,7 @@ export const CourseStore: React.FC = () => {
       if (foundPackage) {
         setSelectedPackage(foundPackage);
         loadCoursesByPackage(foundPackage);
+        fetchUserPackageProgress(packageId);
       } else {
         // 如果没找到，可能是直接通过URL访问的，需要单独加载
         loadPackageById(packageId);
@@ -89,8 +145,9 @@ export const CourseStore: React.FC = () => {
       // 如果没有packageId，清除选中状态
       setSelectedPackage(null);
       setCourses([]);
+      setUserProgress(null);
     }
-  }, [packageId, coursePackages]);
+  }, [packageId, coursePackages, fetchUserPackageProgress]);
 
   // 加载课程包的课程列表
   const loadCoursesByPackage = async (coursePackage: CoursePackage) => {
@@ -98,6 +155,8 @@ export const CourseStore: React.FC = () => {
       setCoursesLoading(true);
       const result = await fetchCoursesByPackage(coursePackage.id);
       setCourses(result);
+      
+
     } catch (err) {
       console.error('Failed to load courses:', err);
       setError(`Failed to get courses: ${err instanceof Error ? err.message : 'Please try again later'}`);
@@ -112,6 +171,7 @@ export const CourseStore: React.FC = () => {
       const result = await fetchCoursePackageDetail(id);
       setSelectedPackage(result);
       loadCoursesByPackage(result);
+      fetchUserPackageProgress(id);
     } catch (err) {
       console.error('Failed to load course package:', err);
       setError(`Failed to get course package: ${err instanceof Error ? err.message : 'Please try again later'}`);
@@ -138,58 +198,14 @@ export const CourseStore: React.FC = () => {
     navigate('/dashboard/store');
   };
 
-  // 课程点击处理
-  const handleCourseClick = (course: Course) => {
-    console.log('Selected course:', course);
-    setSelectedCourse(course);
-    setShowModeModal(true);
-  };
 
-  // 模式选择处理
-  const handleModeSelect = async (mode: 'pinyin' | 'chinese', course: Course) => {
-    console.log('Selected mode:', mode, 'for course:', course);
-    
-    try {
-      // 获取课程的练习数据
-      const exercises = await fetchCourseExercises(course.id);
-      
-      // 使用React Router导航到练习页面，通过URL参数传递课程和练习数据
-      const params = new URLSearchParams({
-        courseId: course.id,
-        courseTitle: course.title,
-        packageId: course.coursePackageId,
-        packageTitle: selectedPackage?.title || '',
-        exercises: JSON.stringify(exercises), // 传递练习数据
-      });
-      
-      if (mode === 'pinyin') {
-        navigate(`/game/pinyin?${params.toString()}`);
-      } else {
-        navigate(`/game/chinese?${params.toString()}`);
-      }
-    } catch (error) {
-      console.error('Failed to load exercises:', error);
-      // 如果加载练习失败，仍然导航到游戏页面，但会使用默认数据
-      const params = new URLSearchParams({
-        courseId: course.id,
-        courseTitle: course.title,
-        packageId: course.coursePackageId,
-        packageTitle: selectedPackage?.title || '',
-      });
-      
-      if (mode === 'pinyin') {
-        navigate(`/game/pinyin?${params.toString()}`);
-      } else {
-        navigate(`/game/chinese?${params.toString()}`);
-      }
+
+  // 处理课程点击 - 直接进入拼音模式
+  const handleCourseClick = useCallback((course: Course) => {
+    if (packageId) {
+      navigate(`/game/pinyin?courseId=${course.id}&packageId=${packageId}`);
     }
-  };
-
-  // 关闭模式选择弹窗
-  const handleCloseModeModal = () => {
-    setShowModeModal(false);
-    setSelectedCourse(null);
-  };
+  }, [navigate, packageId]);
 
   if (loading) {
     return (
@@ -336,7 +352,7 @@ export const CourseStore: React.FC = () => {
         // 课程包详情视图
         <>
           {/* 返回按钮和课程包信息 */}
-          <VStack align="start" gap="8" mb="10" maxW="1200px">
+          <VStack align="start" gap="6" mb="8" maxW="1200px">
             <HStack gap="4">
               <IconButton
                 onClick={handleBackToList}
@@ -356,38 +372,57 @@ export const CourseStore: React.FC = () => {
               </Heading>
             </HStack>
 
+
+
+
+
             {/* 课程包详细信息 */}
             {selectedPackage && (
-              <Box bg="gray.800" p="8" borderRadius="xl" width="100%" border="1px" borderColor="gray.700">
-                <VStack align="start" gap="6">
-                  <Text color="gray.300" fontSize="lg" lineHeight="1.7">
+              <Box bg="gray.800" p="6" borderRadius="xl" width="100%" border="1px" borderColor="gray.700">
+                <VStack align="start" gap="4">
+                  <Text color="gray.300" fontSize="md" lineHeight="1.6">
                     {selectedPackage.description}
                   </Text>
                   
-                  {/* 课程数量信息 */}
-                  <HStack gap="6" fontSize="md" color="gray.400">
+                  {/* 课程数量和分类标签 - 紧凑布局 */}
+                  <HStack gap="4" fontSize="sm" color="gray.400" flexWrap="wrap">
                     <HStack gap="2">
-                      <BookOpen size={18} />
+                      <BookOpen size={16} />
                       <Text fontWeight="500">
                         {selectedPackage.coursesCount || selectedPackage._count?.courses || 0} Courses
                       </Text>
                     </HStack>
-                  </HStack>
-
-                  {/* 分类标签 */}
-                  <HStack gap="3" flexWrap="wrap">
+                    
                     <Badge 
                       colorPalette="purple" 
                       variant="subtle" 
-                      size="md"
-                      px="4"
-                      py="2"
+                      size="sm"
+                      px="3"
+                      py="1"
                       borderRadius="full"
-                      fontWeight="600"
+                      fontWeight="500"
                     >
                       {selectedPackage.category}
                     </Badge>
                   </HStack>
+
+                  {/* 简洁进度信息 */}
+                  {userProgress && userProgress.totalCourses > 0 && (
+                    <HStack gap="4" fontSize="sm" color="gray.400" pt="2">
+                      <HStack gap="2">
+                        <Target size={14} color="#3B82F6" />
+                        <Text>{userProgress.progressPercentage}% Complete</Text>
+                      </HStack>
+                      {userProgress.lastAccessedAt && (
+                        <HStack gap="1">
+                          <Clock size={14} />
+                          <Text>Last: {new Date(userProgress.lastAccessedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</Text>
+                        </HStack>
+                      )}
+                    </HStack>
+                  )}
+
+
                 </VStack>
               </Box>
             )}
@@ -397,48 +432,58 @@ export const CourseStore: React.FC = () => {
           {coursesLoading ? (
             <Center minH="300px">
               <VStack gap="4">
-                <Spinner size="xl" color="blue.400" />
-                <Text color="gray.400">Loading courses...</Text>
+                <Spinner size="lg" color="blue.500" />
               </VStack>
             </Center>
-          ) : courses.length === 0 ? (
-            <Center minH="300px">
-              <VStack gap="4">
-                <BookOpen size={48} color="gray" />
-                <Text color="gray.400" fontSize="lg">
-                  No courses available
-                </Text>
-                <Text color="gray.500" fontSize="sm">
-                  This course package doesn't have any courses yet
-                </Text>
-              </VStack>
-            </Center>
+          ) : courses.length > 0 ? (
+            <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} gap="4">
+              {courses.map((course) => (
+                <CourseCard
+                  key={course.id}
+                  course={course}
+                  onClick={handleCourseClick}
+                  userProgress={(() => {
+                    if (!userProgress) return undefined;
+                    
+                    // 从API返回的课程包详情中查找当前课程的进度
+                    const courseProgress = userProgress.courses?.find(c => c.id === course.id);
+                    
+                    // 调试信息
+                    console.log('Course:', course.title, 'ID:', course.id);
+                    console.log('Course progress from API:', courseProgress);
+                    console.log('Course exerciseCount:', course.exerciseCount);
+                    
+                    if (courseProgress) {
+                      const progressData = {
+                        completedExercises: courseProgress.correctExercises || 0,
+                        totalExercises: courseProgress.totalExercises || 0,
+                        progressPercentage: courseProgress.progressPercentage || 0,
+                        isCompleted: courseProgress.isCompleted || false
+                      };
+                      console.log('Final progress data:', progressData);
+                      return progressData;
+                    }
+                    
+                    // 如果没有找到具体课程进度，使用默认值
+                    const defaultData = {
+                      completedExercises: 0,
+                      totalExercises: course.exerciseCount || 0,
+                      progressPercentage: 0,
+                      isCompleted: false
+                    };
+                    console.log('Using default data:', defaultData);
+                    return defaultData;
+                  })()}
+                />
+              ))}
+            </SimpleGrid>
           ) : (
-            <Box maxW="1400px">
-              <Heading size="lg" color="white" mb="8" fontWeight="600">
-                Course List ({courses.length})
-              </Heading>
-              <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} gap="6">
-                {courses.map((course) => (
-                  <CourseCard
-                    key={course.id}
-                    course={course}
-                    onClick={handleCourseClick}
-                  />
-                ))}
-              </SimpleGrid>
-            </Box>
+            <Center minH="200px">
+              <Text color="gray.400">No courses available in this package</Text>
+            </Center>
           )}
         </>
       )}
-      
-      {/* 游戏模式选择弹窗 */}
-      <GameModeModal
-        isOpen={showModeModal}
-        onClose={handleCloseModeModal}
-        course={selectedCourse}
-        onSelectMode={handleModeSelect}
-      />
     </Box>
   );
 };

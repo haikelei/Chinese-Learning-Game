@@ -331,3 +331,32 @@ export const fetchUserRecentCourses = async (limit: number = 10): Promise<UserRe
     throw error;
   }
 };
+
+// 用户课程包详情接口（包含进度信息）
+export interface UserPackageDetail {
+  id: string;
+  title: string;
+  description?: string;
+  difficultyLevel: string;
+  category?: string;
+  coverImageUrl?: string;
+  enrolledAt: string;
+  overallProgress: number;
+  courses: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    estimatedMinutes?: number;
+    orderIndex: number;
+    progressPercentage: number;
+    isCompleted: boolean;
+    lastStudiedAt?: string;
+    totalExercises: number;
+    correctExercises: number;
+  }>;
+}
+
+// 获取用户课程包详情（包含进度）
+export const fetchUserPackageDetail = async (packageId: string): Promise<UserPackageDetail> => {
+  return api.get(`/my/packages/${packageId}`);
+};

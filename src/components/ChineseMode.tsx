@@ -200,6 +200,10 @@ export interface GameState {
   practiceMode: 'listening' | 'speaking' | 'reading' | 'writing'; // 练习模式
   // 新增：exercise相关字段
   currentExerciseIndex?: number; // 当前exercise索引
+  
+  // 新增：课程完成相关字段
+  showCourseCompletion?: boolean; // 是否显示课程完成提示
+  courseCompleted?: boolean; // 课程是否已完成
 }
 
 export const ChineseMode: React.FC = () => {
@@ -501,9 +505,16 @@ export const ChineseMode: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyPress);
   }, [gameState.gameStarted, startGame, allSegments.length]);
 
-  // 监听游戏内的快捷键
+  // 监听游戏内的快捷键和ESC键
   useEffect(() => {
     const handleShortcutKeys = (e: KeyboardEvent) => {
+      // ESC键 - 返回课程包页面
+      if (e.code === 'Escape') {
+        e.preventDefault();
+        navigate(-1);
+        return;
+      }
+
       if (!gameState.gameStarted) return;
 
       // Ctrl + ' - 播放发音
@@ -544,7 +555,15 @@ export const ChineseMode: React.FC = () => {
 
     window.addEventListener('keydown', handleShortcutKeys);
     return () => window.removeEventListener('keydown', handleShortcutKeys);
-  }, [gameState.gameStarted, handlePlayAudio, handleMaster, handleNewWord, handleShowAnswer, togglePinyinHint]);
+  }, [gameState.gameStarted, handlePlayAudio, handleMaster, handleNewWord, handleShowAnswer, togglePinyinHint, navigate]);
+
+  // 页面离开时清理音频
+  useEffect(() => {
+    return () => {
+      // 组件卸载时停止所有音频
+      stopAllAudio();
+    };
+  }, [stopAllAudio]);
 
   const checkAnswer = useCallback(async () => {
     // 停止当前播放的音频
@@ -567,10 +586,25 @@ export const ChineseMode: React.FC = () => {
       }
     }
     
-    // 直接进入下一题，不显示分数统计
+    // 检查是否完成当前课程的所有练习
     if (allSegments.length > 0) {
       const currentIndex = allSegments.findIndex(ex => ex.id === gameState.currentPhrase?.id);
       const nextIndex = (currentIndex + 1) % allSegments.length;
+      
+      // 检查是否完成所有练习
+      const isLastSegment = nextIndex === 0; // 如果下一个索引是0，说明已经完成所有练习
+      
+      if (isLastSegment) {
+        // 课程完成！显示完成提示
+        setGameState(prev => ({
+          ...prev,
+          showCourseCompletion: true,
+          courseCompleted: true,
+          isPlaying: false
+        }));
+        return; // 不继续执行，等待用户操作
+      }
+      
       const newPhrase = allSegments[nextIndex];
       
       setGameState(prev => ({
@@ -748,6 +782,58 @@ export const ChineseMode: React.FC = () => {
           </KeyHint>
         </StartScreen>
       ) : null}
+
+      {/* 课程完成提示界面 */}
+      {gameState.showCourseCompletion && gameState.courseCompleted && (
+        <StartScreen
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+        >
+          <StartTitle
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
+            style={{ color: '#22C55E' }}
+          >
+            🎉 Course Completed!
+          </StartTitle>
+          
+          <StartSubtitle
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            Congratulations! You have successfully completed all exercises in this course.
+          </StartSubtitle>
+          
+          <motion.button
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6, duration: 0.6 }}
+            onClick={() => navigate(-1)}
+            style={{
+              background: 'linear-gradient(135deg, #3B82F6, #8B5CF6)',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '16px 32px',
+              color: 'white',
+              fontSize: '1.1rem',
+              fontWeight: '600',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              marginTop: '20px'
+            }}
+            whileHover={{ 
+              scale: 1.05,
+              boxShadow: '0 8px 25px rgba(59, 130, 246, 0.4)'
+            }}
+            whileTap={{ scale: 0.95 }}
+          >
+            ← Back to Course Package
+          </motion.button>
+        </StartScreen>
+      )}
 
       {/* 游戏界面 */}
       {gameState.gameStarted && !loading && !error && allSegments.length > 0 && (
