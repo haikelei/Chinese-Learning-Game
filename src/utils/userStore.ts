@@ -1,6 +1,17 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
+import axios from 'axios';
+import { envConfig } from './envConfig';
 import { generateAnonymousUsername, getDeviceFingerprint } from './anonymousUser';
+
+// 创建专门用于认证的axios实例，避免循环依赖
+const authApi = axios.create({
+  baseURL: envConfig.API_HOST,
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 // 用户信息接口
 export interface UserInfo {
@@ -191,19 +202,8 @@ export const useUserStore = create<UserState>()(
           }
           
           // 调用后端API获取token
-          const response = await fetch('/api/auth/token', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ deviceId }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`获取token失败: ${response.statusText}`);
-          }
-
-          const result = await response.json();
+          const response = await authApi.post('/api/auth/token', { deviceId });
+          const result = response.data;
           
           if (result.code === 0) {
             const tokens: TokenResponse = {
@@ -241,19 +241,8 @@ export const useUserStore = create<UserState>()(
         }
 
         try {
-          const response = await fetch('/api/auth/refresh', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ refreshToken: currentRefreshToken }),
-          });
-
-          if (!response.ok) {
-            throw new Error(`刷新token失败: ${response.statusText}`);
-          }
-
-          const result = await response.json();
+          const response = await authApi.post('/api/auth/refresh', { refreshToken: currentRefreshToken });
+          const result = response.data;
           
           if (result.code === 0) {
             const tokens: TokenResponse = {

@@ -217,37 +217,37 @@ export const fetchCoursePackages = async (params: {
   });
   
   // 使用新的HTTP客户端，拦截器会自动处理响应格式
-  return api.get(`/store/packages?${queryParams}`);
+  return api.get(`/api/store/packages?${queryParams}`);
 };
 
 // 获取课程包详情
 export const fetchCoursePackageDetail = async (id: string): Promise<CoursePackage> => {
   // 使用新的HTTP客户端，拦截器会自动处理响应格式
-  return api.get(`/store/packages/${id}`);
+  return api.get(`/api/store/packages/${id}`);
 };
 
 // 获取课程包下的所有课程
 export const fetchCoursesByPackage = async (packageId: string): Promise<Course[]> => {
   // 使用新的HTTP客户端，拦截器会自动处理响应格式
-  return api.get(`/courses/package/${packageId}`);
+  return api.get(`/api/courses/package/${packageId}`);
 };
 
 // 获取课程详情
 export const fetchCourseDetail = async (id: string): Promise<Course> => {
   // 使用新的HTTP客户端，拦截器会自动处理响应格式
-  return api.get(`/courses/${id}`);
+  return api.get(`/api/courses/${id}`);
 };
 
 // 获取练习详情
 export const fetchExerciseDetail = async (id: string): Promise<Exercise> => {
   // 使用新的HTTP客户端，拦截器会自动处理响应格式
-  return api.get(`/exercises/${id}`);
+  return api.get(`/api/exercises/${id}`);
 };
 
 // 获取练习的片段
 export const fetchExerciseSegments = async (exerciseId: string): Promise<ExerciseSegment[]> => {
   // 使用新的HTTP客户端，拦截器会自动处理响应格式
-  return api.get(`/exercises/${exerciseId}/segments`);
+  return api.get(`/api/exercises/${exerciseId}/segments`);
 };
 
 // 获取分类列表
@@ -257,13 +257,13 @@ export const fetchCategories = async (): Promise<Array<{
   description: string;
 }>> => {
   // 使用新的HTTP客户端，拦截器会自动处理响应格式
-  return api.get('/store/categories');
+  return api.get('/api/store/categories');
 };
 
 // 获取课程的所有练习
 export const fetchCourseExercises = async (courseId: string): Promise<Exercise[]> => {
   // 使用新的HTTP客户端，拦截器会自动处理响应格式
-  return api.get(`/courses/${courseId}/exercises`);
+  return api.get(`/api/courses/${courseId}/exercises`);
 };
 
 // 新增：获取课程下所有练习和片段（包括用户进度）
@@ -303,7 +303,7 @@ export const getAllSegmentsFromCourse = async (courseId: string): Promise<{
   }>;
 }> => {
   // 使用新的HTTP客户端，拦截器会自动处理响应格式
-  return api.get(`/courses/${courseId}/all-segments`);
+  return api.get(`/api/courses/${courseId}/all-segments`);
 };
 
 // 转换API练习数据为游戏组件格式
@@ -323,7 +323,7 @@ export const convertExerciseToPhrase = (exercise: Exercise): any => {
 export const fetchUserRecentCourses = async (limit: number = 10): Promise<UserRecentCoursesResponse> => {
   try {
     console.log('🔍 开始获取用户最近课程...');
-    const result = await api.get(`/courses/user/recent?limit=${limit}`);
+    const result = await api.get(`/api/courses/user/recent?limit=${limit}`);
     console.log('📊 API返回结果:', result);
     return result;
   } catch (error) {
@@ -358,5 +358,5 @@ export interface UserPackageDetail {
 
 // 获取用户课程包详情（包含进度）
 export const fetchUserPackageDetail = async (packageId: string): Promise<UserPackageDetail> => {
-  return api.get(`/my/packages/${packageId}`);
+  return api.get(`/api/my/packages/${packageId}`);
 };

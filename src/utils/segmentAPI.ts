@@ -11,7 +11,7 @@ export const startPractice = async (
   practiceMode: 'listening' | 'speaking' | 'reading' | 'writing' = 'listening'
 ) => {
   try {
-    const response = await api.post('/segments/start-practice', {
+    const response = await api.post('/api/segments/start-practice', {
       exerciseId,
       segmentId,
       practiceMode
@@ -31,7 +31,7 @@ export const completePractice = async (
   timeSpentSeconds: number = 0
 ) => {
   try {
-    const response = await api.post('/segments/complete-practice', {
+    const response = await api.post('/api/segments/complete-practice', {
       exerciseId,
       segmentId,
       practiceMode,
@@ -47,7 +47,7 @@ export const completePractice = async (
 // 获取练习进度（新接口）
 export const getPracticeProgress = async (exerciseId: string) => {
   try {
-    const response = await api.get(`/segments/progress/${exerciseId}`);
+    const response = await api.get(`/api/segments/progress/${exerciseId}`);
     return response;
   } catch (error) {
     console.error('Failed to get practice progress:', error);
@@ -58,7 +58,7 @@ export const getPracticeProgress = async (exerciseId: string) => {
 // 获取练习建议（新接口）
 export const getPracticeSuggestion = async (exerciseId: string) => {
   try {
-    const response = await api.get(`/segments/suggest-next/${exerciseId}`);
+    const response = await api.get(`/api/segments/suggest-next/${exerciseId}`);
     return response;
   } catch (error) {
     console.error('Failed to get practice suggestion:', error);

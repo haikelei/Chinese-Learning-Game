@@ -1,4 +1,4 @@
-import { envConfig } from './envConfig';
+import { api } from './httpClient';
 
 // 讨论板API接口定义
 export interface Message {
@@ -48,68 +48,30 @@ export interface ReplyInfoResponse {
 
 // 讨论板API客户端
 class DiscussionAPI {
-  private getApiUrl(path: string): string {
-    return envConfig.getApiUrl(path);
-  }
 
   // 获取消息列表
   async getMessages(page = 1, limit = 50): Promise<MessageListResponse> {
-    const url = this.getApiUrl(`/api/discussion?page=${page}&limit=${limit}`);
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return api.get(`/api/discussion?page=${page}&limit=${limit}`);
   }
 
   // 创建新消息
   async createMessage(request: CreateMessageRequest): Promise<MessageResponse> {
-    const url = this.getApiUrl('/api/discussion');
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(request),
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return api.post('/api/discussion', request);
   }
 
   // 获取单个消息
   async getMessage(id: string): Promise<MessageResponse> {
-    const url = this.getApiUrl(`/api/discussion/${id}`);
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return api.get(`/api/discussion/${id}`);
   }
 
   // 获取原始消息用于回复
   async getReplyInfo(id: string): Promise<ReplyInfoResponse> {
-    const url = this.getApiUrl(`/api/discussion/${id}/reply`);
-    const response = await fetch(url);
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return api.get(`/api/discussion/${id}/reply`);
   }
 
   // 删除消息
   async deleteMessage(id: string): Promise<{ success: boolean; message: string }> {
-    const url = this.getApiUrl(`/api/discussion/${id}`);
-    const response = await fetch(url, {
-      method: 'DELETE',
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
-    }
-    return response.json();
+    return api.delete(`/api/discussion/${id}`);
   }
 }
 

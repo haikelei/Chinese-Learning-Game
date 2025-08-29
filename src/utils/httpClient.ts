@@ -1,5 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse, AxiosError, AxiosRequestConfig } from 'axios';
 import { useUserStore } from './userStore';
+import { envConfig } from './envConfig';
 
 // 定义API响应的标准格式
 export interface ApiResponse<T = any> {
@@ -26,7 +27,7 @@ export class HttpClient {
   constructor(config: HttpClientConfig = {}) {
     // 创建axios实例
     this.instance = axios.create({
-      baseURL: config.baseURL || '/api', // 本地开发使用 /api 作为基础路径
+      baseURL: config.baseURL || envConfig.API_HOST,
       timeout: config.timeout || 10000,
       headers: {
         'Content-Type': 'application/json',
