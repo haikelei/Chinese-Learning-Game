@@ -1,28 +1,41 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  Box, 
-  Text, 
-  VStack, 
-  HStack, 
-  SimpleGrid, 
-  Spinner, 
-  Center, 
-  Badge
-} from '@chakra-ui/react';
-import { BookOpen } from 'lucide-react';
-import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { fetchUserRecentCourses, UserRecentCourse } from '../utils/courseAPI';
+import {
+  Box,
+  Text,
+  SimpleGrid,
+  Center,
+  VStack,
+  HStack,
+  Badge,
+  IconButton,
+} from '@chakra-ui/react';
+import { BookOpen, RefreshCw } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { fetchUserRecentCourses, fetchUserPackageDetail } from '../utils/courseAPI';
 import { UserCoursePackageCard } from './UserCoursePackageCard';
 
+// 用户课程包接口（更新为使用真实的课程包进度）
 interface UserCoursePackage {
   id: string;
   title: string;
   description?: string;
   coverImageUrl?: string;
   difficultyLevel?: string;
-  courses: UserRecentCourse[];
-  totalProgress: number;
+  courses: Array<{
+    id: string;
+    title: string;
+    description?: string;
+    orderIndex: number;
+    coursePackageId: string;
+    coursePackageTitle: string;
+    lastAccessedAt: string;
+    completionPercentage: number;
+    completedExercises: number;
+    totalExercises: number;
+    isCompleted: boolean;
+  }>;
+  totalProgress: number; // 现在使用真实的课程包进度
   lastAccessedAt: string;
 }
 
@@ -32,31 +45,18 @@ export const MyCourses: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [coursePackages, setCoursePackages] = useState<UserCoursePackage[]>([]);
 
-
   // 获取用户最近学习的课程
   const fetchUserCourses = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      console.log('🔍 开始获取用户最近课程数据...');
-      
-      const response = await fetchUserRecentCourses(50); // 获取更多数据用于统计
-      
-      console.log('📊 API响应数据:', response);
-      console.log('📊 响应数据类型:', typeof response);
-      console.log('📊 响应是否为null:', response === null);
-      console.log('📊 响应是否为undefined:', response === undefined);
-      
-      // 检查响应数据结构
-      if (!response) {
-        console.error('❌ API响应为空:', response);
-        throw new Error('API响应为空，请检查网络连接');
-      }
-      
-      if (!response.courses) {
-        console.error('❌ API响应中没有courses字段:', response);
-        console.error('📝 响应的所有字段:', Object.keys(response));
+
+      console.log('🔍 开始获取用户最近课程...');
+      const response = await fetchUserRecentCourses(50); // 增加限制以获取更多课程
+      console.log('📊 用户最近课程API响应:', response);
+
+      if (!response || !response.courses) {
+        console.error('❌ API响应格式不正确：缺少courses字段');
         throw new Error('API响应格式不正确：缺少courses字段');
       }
       
@@ -74,7 +74,7 @@ export const MyCourses: React.FC = () => {
             id: course.coursePackageId,
             title: course.coursePackageTitle,
             courses: [],
-            totalProgress: 0,
+            totalProgress: 0, // 初始化为0，稍后通过API获取真实进度
             lastAccessedAt: course.lastAccessedAt
           });
         }
@@ -87,28 +87,46 @@ export const MyCourses: React.FC = () => {
           pkg.lastAccessedAt = course.lastAccessedAt;
         }
       });
-      
-      // 计算每个课程包的总进度
-      const packages = Array.from(packagesMap.values()).map(pkg => {
-        const totalProgress = pkg.courses.reduce((sum, course) => 
-          sum + course.completionPercentage, 0
-        ) / pkg.courses.length;
-        
-        return {
-          ...pkg,
-          totalProgress: Math.round(totalProgress)
-        };
-      });
+
+      // 获取每个课程包的真实进度
+      const packagesWithProgress = await Promise.all(
+        Array.from(packagesMap.values()).map(async (pkg) => {
+          try {
+            // 调用fetchUserPackageDetail获取真实的课程包进度
+            const packageDetail = await fetchUserPackageDetail(pkg.id);
+            console.log(`📦 课程包 ${pkg.id} 的真实进度:`, packageDetail.overallProgress);
+            
+            return {
+              ...pkg,
+              totalProgress: packageDetail.overallProgress, // 使用API返回的真实进度
+              description: packageDetail.description,
+              coverImageUrl: packageDetail.coverImageUrl,
+              difficultyLevel: packageDetail.difficultyLevel
+            };
+          } catch (err) {
+            console.warn(`⚠️ 获取课程包 ${pkg.id} 进度失败:`, err);
+            // 如果获取失败，回退到原来的计算方式
+            const fallbackProgress = Math.round(
+              pkg.courses.reduce((sum, course) => sum + course.completionPercentage, 0) / pkg.courses.length
+            );
+            return {
+              ...pkg,
+              totalProgress: fallbackProgress
+            };
+          }
+        })
+      );
       
       // 按最后访问时间排序
-      packages.sort((a, b) => new Date(b.lastAccessedAt).getTime() - new Date(a.lastAccessedAt).getTime());
+      packagesWithProgress.sort((a, b) => 
+        new Date(b.lastAccessedAt).getTime() - new Date(a.lastAccessedAt).getTime()
+      );
       
-      setCoursePackages(packages);
-      
+      setCoursePackages(packagesWithProgress);
+      console.log('✅ 课程包数据加载完成:', packagesWithProgress);
 
-      
     } catch (err) {
-      console.error('Failed to fetch user courses:', err);
+      console.error('❌ 获取用户课程失败:', err);
       setError('Failed to get course data, please try again later');
     } finally {
       setLoading(false);

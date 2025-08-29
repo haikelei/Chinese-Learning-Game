@@ -75,6 +75,22 @@ function generateDeviceId(): string {
   return `device_${Math.abs(hash).toString(36)}`;
 }
 
+// 生成持久化设备ID（用于在浏览器重启后保持一致）
+function generatePersistentDeviceId(): string {
+  const fingerprint = getDeviceFingerprint();
+  const combined = Object.values(fingerprint).join('|');
+  
+  // 简单的哈希算法
+  let hash = 0;
+  for (let i = 0; i < combined.length; i++) {
+    const char = combined.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // 转换为32位整数
+  }
+  
+  return `persistent_device_${Math.abs(hash).toString(36)}`;
+}
+
 // 检查token是否过期
 function isTokenExpired(token: string): boolean {
   try {
@@ -160,7 +176,19 @@ export const useUserStore = create<UserState>()(
         set({ isLoading: true });
         
         try {
-          const deviceId = generateDeviceId();
+          // 优先使用本地存储的设备ID
+          const STORAGE_KEY = 'persistent_device_id';
+          let deviceId = localStorage.getItem(STORAGE_KEY);
+          
+          // 如果没有本地存储的设备ID，才生成新的
+          if (!deviceId) {
+            deviceId = generatePersistentDeviceId();
+            // 保存到本地存储
+            localStorage.setItem(STORAGE_KEY, deviceId);
+            console.log('🆕 生成新的设备ID:', deviceId);
+          } else {
+            console.log('✅ 使用本地存储的设备ID:', deviceId);
+          }
           
           // 调用后端API获取token
           const response = await fetch('/api/auth/token', {
